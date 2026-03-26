@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Statistiche</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+:root {
+  --bg-primary: #0a0c12;
+  --bg-secondary: #10131a;
+  --bg-card: #161a24;
+  --bg-card-hover: #1c2130;
+  --bg-input: #10131a;
+  --border: rgba(255,255,255,.07);
+  --border-hover: rgba(255,255,255,.13);
+  --gold: #c49a3c;
+  --gold-light: #dbc07a;
+  --gold-dark: #8b6914;
+  --gold-glow: rgba(196,154,60,.12);
+  --green: #37965a;
+  --green-light: #6fbf8a;
+  --green-bg: rgba(55,150,90,.08);
+  --red: #c0463f;
+  --red-light: #e07670;
+  --red-bg: rgba(192,70,63,.08);
+  --blue: #5a9bd5;
+  --blue-bg: rgba(90,155,213,.08);
+  --purple: #9680cc;
+  --text-primary: #c9d1d9;
+  --text-secondary: #7d8590;
+  --text-muted: #444c56;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow: 0 8px 32px rgba(0,0,0,.4);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.5);
+  --transition: .2s cubic-bezier(.4,0,.2,1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg-primary); color:var(--text-primary); min-height:100vh; overflow-x:hidden; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--text-muted); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background:var(--text-secondary); }
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0; width:260px; z-index:100;
+  background: linear-gradient(180deg, #0d1117 0%, #0a0e14 100%);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-header {
+  padding:24px; border-bottom:1px solid var(--border);
+}
+.sidebar-brand {
+  display:flex; align-items:center; gap:14px;
+}
+.brand-icon {
+  width:44px; height:44px; border-radius:var(--radius);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; color:#fff; box-shadow: 0 4px 12px rgba(196,154,60,.25);
+}
+.brand-text { font-size:18px; font-weight:800; letter-spacing:-.3px; }
+.brand-text span { color:var(--gold); }
+.brand-sub { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:2px; margin-top:2px; }
+
+.sidebar nav { flex:1; padding:16px 12px; overflow-y:auto; }
+.nav-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.5px; padding:14px 16px 8px; font-weight:600; }
+.nav-item {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 16px; margin:2px 0; border-radius:var(--radius-sm);
+  color:var(--text-secondary); text-decoration:none; font-size:14px; font-weight:500;
+  transition: all var(--transition); cursor:pointer; position:relative;
+}
+.nav-item:hover { background:rgba(255,255,255,.04); color:var(--text-primary); }
+.nav-item.active {
+  background: var(--gold-glow); color:var(--gold-light);
+}
+.nav-item.active::before {
+  content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px;
+  background:var(--gold); border-radius:0 3px 3px 0;
+}
+.nav-icon { font-size:20px; width:26px; text-align:center; flex-shrink:0; }
+.nav-badge {
+  margin-left:auto; background:var(--gold); color:#000; font-size:11px;
+  font-weight:700; padding:2px 8px; border-radius:10px;
+}
+
+.sidebar-footer {
+  padding:16px 20px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.sidebar-footer span { font-size:11px; color:var(--text-muted); }
+.btn-backup {
+  background:none; border:1px solid var(--border); color:var(--text-secondary);
+  padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer;
+  transition: all var(--transition);
+}
+.btn-backup:hover { border-color:var(--gold); color:var(--gold); }
+
+/* ===== MAIN ===== */
+.main { margin-left:260px; min-height:100vh; }
+
+/* ===== TOP BAR ===== */
+.topbar {
+  position:sticky; top:0; z-index:50;
+  background: rgba(7,9,15,.8); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 32px; height:60px; display:flex; align-items:center; gap:16px;
+}
+.topbar-title { font-size:16px; font-weight:700; flex-shrink:0; }
+.topbar-search {
+  flex:1; max-width:400px; position:relative; margin-left:24px;
+}
+.topbar-search input {
+  width:100%; padding:8px 12px 8px 36px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text-primary); font-size:13px; font-family:inherit;
+  transition: all var(--transition);
+}
+.topbar-search input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-glow); }
+.topbar-search input::placeholder { color:var(--text-muted); }
+.topbar-search .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; }
+.topbar-actions { margin-left:auto; display:flex; gap:8px; }
+.topbar-search .search-results {
+  position:absolute; top:calc(100% + 4px); left:0; right:0;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  max-height:300px; overflow-y:auto; display:none; box-shadow:var(--shadow-lg);
+}
+.topbar-search .search-results.show { display:block; }
+.search-result-item {
+  padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border);
+  transition: background var(--transition);
+}
+.search-result-item:hover { background:var(--bg-card-hover); }
+.search-result-item .sr-name { font-weight:600; }
+.search-result-item .sr-sub { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+
+/* ===== CONTENT ===== */
+.content { padding:24px 32px 48px; }
+.page { display:none; animation: fadeIn .3s ease; }
+.page.active { display:block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ===== KPI GRID ===== */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom:28px; }
+.kpi-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:20px 22px; position:relative; overflow:hidden;
+  transition: all var(--transition);
+}
+.kpi-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:var(--shadow); }
+.kpi-card::after {
+  content:''; position:absolute; top:0; right:0; width:80px; height:80px;
+  border-radius:50%; filter:blur(40px); opacity:.15; pointer-events:none;
+}
+.kpi-card.gold::after { background:var(--gold); }
+.kpi-card.green::after { background:var(--green); }
+.kpi-card.red::after { background:var(--red); }
+.kpi-card.blue::after { background:var(--blue); }
+.kpi-card.purple::after { background:var(--purple); }
+.kpi-label { font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+.kpi-value { font-size:26px; font-weight:800; margin-top:8px; letter-spacing:-1px; line-height:1; }
+.kpi-card.gold .kpi-value { color:var(--gold-light); }
+.kpi-card.green .kpi-value { color:var(--green-light); }
+.kpi-card.red .kpi-value { color:var(--red-light); }
+.kpi-card.blue .kpi-value { color:var(--blue); }
+.kpi-card.purple .kpi-value { color:var(--purple); }
+.kpi-sub { font-size:12px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:4px; }
+.kpi-sub .up { color:var(--green-light); }
+.kpi-sub .down { color:var(--red-light); }
+.kpi-icon { position:absolute; top:18px; right:18px; font-size:28px; opacity:.2; }
+
+/* ===== CARD / PANEL ===== */
+.card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
+  overflow:hidden; transition: border-color var(--transition);
+}
+.card:hover { border-color:var(--border-hover); }
+.card-header {
+  padding:18px 22px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.card-header h2 { font-size:14px; font-weight:700; }
+.card-header .card-actions { display:flex; gap:6px; }
+.card-body { padding:22px; }
+.card-body.no-pad { padding:0; }
+.cards-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 16px; border-radius:var(--radius-sm); border:1px solid transparent;
+  font-size:13px; font-weight:600; cursor:pointer; transition:all var(--transition);
+  font-family:inherit; line-height:1.4;
+}
+.btn:active { transform:scale(.97); }
+.btn-gold { background:linear-gradient(135deg, var(--gold), var(--gold-dark)); color:#000; border:none; }
+.btn-gold:hover { box-shadow:0 4px 16px rgba(196,154,60,.25); }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text-secondary); }
+.btn-outline:hover { border-color:var(--text-secondary); color:var(--text-primary); background:rgba(255,255,255,.03); }
+.btn-ghost { background:transparent; border:none; color:var(--text-secondary); padding:6px 10px; }
+.btn-ghost:hover { color:var(--text-primary); background:rgba(255,255,255,.05); }
+.btn-danger { background:var(--red-bg); border:1px solid rgba(192,70,63,.15); color:var(--red-light); }
+.btn-danger:hover { background:rgba(192,70,63,.15); }
+.btn-green { background:var(--green-bg); border:1px solid rgba(55,150,90,.15); color:var(--green-light); }
+.btn-green:hover { background:rgba(55,150,90,.15); }
+.btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
+.btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* ===== TABLE ===== */
+.tbl-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+thead th {
+  padding:11px 14px; text-align:left; font-weight:600;
+  color:var(--text-secondary); font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.5px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; background:var(--bg-card); cursor:pointer;
+  white-space:nowrap; user-select:none;
+}
+thead th:hover { color:var(--gold); }
+thead th.sort-asc::after { content:' ▲'; font-size:9px; color:var(--gold); }
+thead th.sort-desc::after { content:' ▼'; font-size:9px; color:var(--gold); }
+tbody td { padding:11px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+tbody tr { transition:background var(--transition); }
+tbody tr:hover { background:rgba(255,255,255,.02); }
+tbody tr.clickable { cursor:pointer; }
+.text-pos { color:var(--green-light); font-weight:600; }
+.text-neg { color:var(--red-light); font-weight:600; }
+.text-gold { color:var(--gold-light); font-weight:600; }
+.text-muted { color:var(--text-muted); }
+.text-secondary { color:var(--text-secondary); }
+
+.badge-gd {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:24px; padding:0 8px;
+  background:linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color:#000; border-radius:12px; font-weight:800; font-size:12px;
+}
+
+/* ===== FORMS ===== */
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.8px; font-weight:600; }
+.form-hint { font-size:12px; color:var(--text-muted); }
+input, select, textarea {
+  width:100%; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text-primary); font-size:14px; font-family:inherit;
+  transition: all var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  outline:none; border-color:var(--gold);
+  box-shadow:0 0 0 3px var(--gold-glow);
+}
+input::placeholder { color:var(--text-muted); }
+select option { background:var(--bg-card); }
+/* Date picker bigger */
+input[type="date"], input[type="time"] { min-width:160px; }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter:invert(1); cursor:pointer; font-size:18px; padding:4px;
+}
+/* Make the native date popup bigger via font-size */
+::-webkit-datetime-edit { font-size:14px; }
+::-webkit-datetime-edit-fields-wrapper { padding:2px 0; }
+
+/* ===== AUTOCOMPLETE ===== */
+.ac-wrap { position:relative; }
+.ac-list {
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:60;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  max-height:300px; overflow-y:auto; display:none; box-shadow:var(--shadow-lg);
+}
+.ac-list.show { display:block; }
+.ac-item {
+  padding:10px 14px; cursor:pointer; font-size:13px;
+  border-bottom:1px solid var(--border); transition:background var(--transition);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ac-item:hover, .ac-item.sel { background:var(--bg-card-hover); }
+.ac-item .ac-name { font-weight:600; }
+.ac-item .ac-sub { font-size:11px; color:var(--text-muted); }
+
+/* ===== FILTERS BAR ===== */
+.filters-bar {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px;
+  padding:12px 16px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius);
+}
+.filters-bar select, .filters-bar input { width:auto; min-width:150px; padding:7px 10px; font-size:13px; }
+.filters-bar label { font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:.5px; }
+.filter-group { display:flex; flex-direction:column; gap:4px; }
+.filter-sep { width:1px; height:30px; background:var(--border); margin:0 4px; }
+
+/* ===== MODAL ===== */
+.modal-bg {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.modal-bg.show { display:flex; }
+.modal {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl);
+  width:90%; max-width:700px; max-height:85vh; overflow:hidden;
+  box-shadow:var(--shadow-lg); display:flex; flex-direction:column;
+  animation: modalIn .25s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(.95) translateY(10px); } }
+.modal-head {
+  padding:20px 24px; border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+}
+.modal-head h3 { font-size:18px; font-weight:700; }
+.modal-close { background:none; border:none; color:var(--text-muted); font-size:22px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:all var(--transition); }
+.modal-close:hover { background:rgba(255,255,255,.05); color:var(--text-primary); }
+.modal-content { padding:24px; overflow-y:auto; flex:1; }
+.modal-foot {
+  padding:16px 24px; border-top:1px solid var(--border);
+  display:flex; justify-content:flex-end; gap:8px; flex-shrink:0;
+}
+
+/* ===== CHART ===== */
+.chart-box { position:relative; height:300px; }
+
+/* ===== DROP ZONE ===== */
+.drop-zone {
+  border:2px dashed var(--border); border-radius:var(--radius-lg);
+  padding:60px 40px; text-align:center; cursor:pointer; transition:all .3s;
+  position:relative; overflow:hidden;
+}
+.drop-zone::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg, var(--gold-glow), transparent);
+  opacity:0; transition:opacity .3s;
+}
+.drop-zone:hover::before, .drop-zone.dragover::before { opacity:1; }
+.drop-zone:hover, .drop-zone.dragover { border-color:var(--gold); }
+.drop-zone .dz-icon { font-size:56px; margin-bottom:16px; position:relative; }
+.drop-zone .dz-text { font-size:16px; font-weight:600; color:var(--text-primary); position:relative; }
+.drop-zone .dz-hint { font-size:13px; color:var(--text-secondary); margin-top:8px; position:relative; }
+
+/* ===== IMPORT LOG ===== */
+.import-log {
+  max-height:250px; overflow-y:auto; font-family:'SF Mono',monospace; font-size:12px;
+  background:var(--bg-primary); padding:16px; border-radius:var(--radius);
+  margin-top:16px; border:1px solid var(--border);
+}
+.import-log .log-ok { color:var(--green-light); }
+.import-log .log-warn { color:var(--gold); }
+.import-log .log-err { color:var(--red-light); }
+
+/* ===== TABS ===== */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.tab-btn {
+  padding:12px 20px; cursor:pointer; color:var(--text-muted); font-size:13px; font-weight:600;
+  border-bottom:2px solid transparent; margin-bottom:-1px; transition:all var(--transition);
+  background:none; border-top:none; border-left:none; border-right:none; font-family:inherit;
+}
+.tab-btn:hover { color:var(--text-secondary); }
+.tab-btn.active { color:var(--gold-light); border-bottom-color:var(--gold); }
+
+/* ===== TOAST ===== */
+.toast-wrap { position:fixed; top:72px; right:24px; z-index:2000; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  padding:12px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:500;
+  display:flex; align-items:center; gap:10px; min-width:250px;
+  animation: toastIn .3s ease; box-shadow:var(--shadow-lg);
+}
+.toast.success { background:var(--green); color:#fff; }
+.toast.error { background:var(--red); color:#fff; }
+.toast.info { background:var(--blue); color:#fff; }
+@keyframes toastIn { from { transform:translateX(80px); opacity:0; } }
+
+/* ===== QUICK ACTIONS ===== */
+.quick-actions { display:flex; gap:10px; margin-bottom:24px; }
+.qa-btn {
+  flex:1; display:flex; align-items:center; gap:12px;
+  padding:16px 20px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius); cursor:pointer; transition:all var(--transition);
+  text-decoration:none; color:var(--text-primary);
+}
+.qa-btn:hover { border-color:var(--gold); background:var(--bg-card-hover); transform:translateY(-1px); }
+.qa-icon { font-size:24px; width:44px; height:44px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.qa-icon.gold { background:var(--gold-glow); }
+.qa-icon.blue { background:var(--blue-bg); }
+.qa-icon.green { background:var(--green-bg); }
+.qa-text { font-size:14px; font-weight:600; }
+.qa-sub { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { text-align:center; padding:48px; }
+.empty-state .es-icon { font-size:48px; opacity:.3; margin-bottom:12px; }
+.empty-state .es-text { color:var(--text-secondary); font-size:14px; }
+
+
+
+/* ===== MOBILE ===== */
+.menu-toggle {
+  display:none; position:fixed; top:10px; left:10px; z-index:200;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:10px 14px; color:var(--text-primary); font-size:18px; cursor:pointer;
+}
+@media(max-width:900px) {
+  .sidebar { transform:translateX(-100%); width:280px; }
+  .sidebar.open { transform:translateX(0); }
+  .main { margin-left:0; }
+  .menu-toggle { display:block; }
+  .content { padding:16px; }
+  .topbar { padding:0 16px; padding-left:56px; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .cards-row { grid-template-columns:1fr; }
+  .quick-actions { flex-direction:column; }
+  .filters-bar { flex-direction:column; align-items:stretch; }
+  .filter-sep { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-primary)">
+  <div style="width:360px;padding:40px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg)">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));display:inline-flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin-bottom:16px;box-shadow:0 4px 12px rgba(196,154,60,.3)">&#9824;</div>
+      <h1 style="font-size:22px;font-weight:800;color:var(--text-primary)">Statistiche</h1>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Player Analytics</p>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Nome</label>
+      <input type="text" id="login-nome" placeholder="Nome operatore" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group" style="margin-bottom:24px">
+      <label class="form-label">Password</label>
+      <input type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-gold" id="login-btn" onclick="doLogin()" style="width:100%;justify-content:center;padding:12px">Accedi</button>
+  </div>
+</div>
+
+<!-- APP (hidden until login) -->
+<div id="app-screen" style="display:none">
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">
+      <div class="brand-icon">&#9824;</div>
+      <div>
+        <div class="brand-text"><span>Statistiche</span></div>
+        <div class="brand-sub">Player Analytics</div>
+      </div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-label">Principale</div>
+    <a class="nav-item active" data-page="dashboard"><span class="nav-icon">&#9673;</span>Dashboard</a>
+    <a class="nav-item" data-page="inserimento"><span class="nav-icon">&#10010;</span>Inserimento</a>
+    <a class="nav-item" data-page="registrazioni"><span class="nav-icon">&#9776;</span>Registrazioni</a>
+    <div class="nav-label">Gestione</div>
+    <a class="nav-item" data-page="clienti"><span class="nav-icon">&#9823;</span>Clienti<span class="nav-badge" id="nav-clienti-count">0</span></a>
+    <a class="nav-item" data-page="statistiche"><span class="nav-icon">&#9733;</span>Statistiche</a>
+    <div class="nav-label">Dati</div>
+    <a class="nav-item" data-page="importa"><span class="nav-icon">&#8681;</span>Importa Excel</a>
+    <a class="nav-item" data-page="esporta"><span class="nav-icon">&#8682;</span>Esporta PDF/CSV</a>
+  </nav>
+  <div class="sidebar-footer">
+    <span>v2.0</span>
+    <button class="btn-backup" onclick="backupDati()" title="Backup">&#128190; Backup</button>
+    <button class="btn-backup" onclick="logout()" title="Esci" style="color:var(--red-light);border-color:var(--red-light)">&#9211; Esci</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-search">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" id="global-search" placeholder="Cerca cliente..." oninput="globalSearch(this.value)" autocomplete="off">
+      <div class="search-results" id="global-results"></div>
+    </div>
+  </div>
+  <div class="content">
+
+<!-- ==================== DASHBOARD ==================== -->
+<div class="page active" id="pg-dashboard">
+  <div class="quick-actions">
+    <a class="qa-btn" onclick="goPage('inserimento')">
+      <div class="qa-icon gold">&#10010;</div>
+      <div><div class="qa-text">Nuova Registrazione</div><div class="qa-sub">Inserisci dati gioco</div></div>
+    </a>
+    <a class="qa-btn" onclick="goPage('importa')">
+      <div class="qa-icon blue">&#128196;</div>
+      <div><div class="qa-text">Importa Excel</div><div class="qa-sub">Carica file mensile</div></div>
+    </a>
+    <a class="qa-btn" onclick="goPage('esporta')">
+      <div class="qa-icon green">&#128230;</div>
+      <div><div class="qa-text">Esporta Dati</div><div class="qa-sub">PDF e CSV</div></div>
+    </a>
+  </div>
+
+  <div class="filters-bar">
+    <div class="filter-group"><label>Mese</label><select id="d-mese" onchange="renderDashboard()"></select></div>
+    <div class="filter-group"><label>Anno</label><select id="d-anno" onchange="renderDashboard()"></select></div>
+  </div>
+
+  <div class="kpi-grid" id="dash-kpi"></div>
+
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-header"><h2>Top 10 Clienti (TOT. IN)</h2></div>
+      <div class="card-body"><div class="chart-box" style="height:420px"><canvas id="ch-top10"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Top 10 Clienti (BD)</h2></div>
+      <div class="card-body"><div class="chart-box" style="height:420px"><canvas id="ch-top10bd"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header"><h2>Andamento Mensile</h2></div>
+    <div class="card-body"><div class="chart-box" style="height:250px"><canvas id="ch-trend"></canvas></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header">
+      <h2>&#127942; Classifica Visite (Giornate di Gioco)</h2>
+      <div class="card-actions">
+        <input type="text" id="dash-search" placeholder="&#128269; Cerca cliente..." oninput="renderDashboard()" style="width:200px;padding:6px 10px;font-size:12px">
+        <button class="btn btn-outline btn-sm" onclick="exportPDF('tutti')">&#128196; PDF</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV('tutti')">CSV</button>
+      </div>
+    </div>
+    <div class="card-body no-pad"><div class="tbl-wrap" id="dash-classifica"></div></div>
+  </div>
+</div>
+
+<!-- ==================== INSERIMENTO ==================== -->
+<div class="page" id="pg-inserimento">
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-header"><h2>&#10010; Nuova Registrazione</h2></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:span 2">
+            <label class="form-label">Cliente</label>
+            <div class="ac-wrap">
+              <input type="text" id="f-cliente" placeholder="Cerca o scrivi nome cliente..." autocomplete="off" oninput="acCliente(this)" onfocus="acCliente(this)" onkeydown="acKeyDown(event)">
+              <div class="ac-list" id="f-ac"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">N. Tessera</label>
+            <input type="text" id="f-tessera" placeholder="Opzionale">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data GD</label>
+            <input type="text" id="f-data" placeholder="gg.mm.aa">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ora</label>
+            <input type="time" id="f-ora" value="12:00">
+            <span class="form-hint">00:00-05:59 = GD giorno prima</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">TOT. IN</label>
+            <input type="number" id="f-totin" placeholder="0" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">BD (Bill Drop)</label>
+            <input type="number" id="f-bd" placeholder="0" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">G WIN</label>
+            <input type="number" id="f-gwin" placeholder="0" step="1">
+            <span class="form-hint">+ casino vince, - casino perde</span>
+          </div>
+        </div>
+        <div class="btn-group" style="margin-top:20px">
+          <button class="btn btn-gold" onclick="salvaReg()">&#10004; Salva Registrazione</button>
+          <button class="btn btn-outline" onclick="resetForm()">Annulla</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Ultime Registrazioni</h2></div>
+      <div class="card-body no-pad"><div class="tbl-wrap" id="ins-recenti" style="max-height:500px;overflow-y:auto"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== REGISTRAZIONI ==================== -->
+<div class="page" id="pg-registrazioni">
+  <div class="filters-bar">
+    <div class="filter-group"><label>Cliente</label><select id="r-cliente" onchange="renderRegs()"></select></div>
+    <div class="filter-sep"></div>
+    <div class="filter-group"><label>Mese</label><select id="r-mese" onchange="renderRegs()"></select></div>
+    <div class="filter-group"><label>Anno</label><select id="r-anno" onchange="renderRegs()"></select></div>
+    <div class="filter-sep"></div>
+    <div class="filter-group"><label>Dal</label><input type="text" id="r-dal" placeholder="gg.mm.aa" oninput="renderRegs()" style="width:110px"></div>
+    <div class="filter-group"><label>Al</label><input type="text" id="r-al" placeholder="gg.mm.aa" oninput="renderRegs()" style="width:110px"></div>
+    <button class="btn btn-ghost" onclick="clearRegFilters()" style="align-self:flex-end">&#10006; Reset</button>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h2 id="reg-count">Registrazioni</h2>
+      <div class="card-actions">
+        <input type="text" id="reg-search" placeholder="&#128269; Cerca..." oninput="renderRegs()" style="width:180px;padding:6px 10px;font-size:12px">
+        <button class="btn btn-outline btn-sm" onclick="exportPDF('filtro')">&#128196; PDF</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV('filtro')">CSV</button>
+      </div>
+    </div>
+    <div class="card-body no-pad"><div class="tbl-wrap" id="reg-table"></div></div>
+  </div>
+</div>
+
+<!-- ==================== CLIENTI ==================== -->
+<div class="page" id="pg-clienti">
+  <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+    <input type="text" id="cli-search" placeholder="&#128269; Cerca cliente..." oninput="renderClienti()" style="flex:1;min-width:200px">
+    <button class="btn btn-gold" onclick="modalNuovoCliente()">&#10010; Nuovo Cliente</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2 id="cli-count">Clienti</h2></div>
+    <div class="card-body no-pad"><div class="tbl-wrap" id="cli-table"></div></div>
+  </div>
+</div>
+
+<!-- ==================== STATISTICHE ==================== -->
+<div class="page" id="pg-statistiche">
+  <div class="filters-bar">
+    <div class="filter-group"><label>Mese</label><select id="s-mese" onchange="renderStats()"></select></div>
+    <div class="filter-group"><label>Anno</label><select id="s-anno" onchange="renderStats()"></select></div>
+  </div>
+  <div class="kpi-grid" id="stat-kpi"></div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-header"><h2>G WIN per Cliente</h2></div>
+      <div class="card-body"><div class="chart-box"><canvas id="ch-gwin"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Top 10 Bill Drop</h2></div>
+      <div class="card-body"><div class="chart-box"><canvas id="ch-bd"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h2>Riepilogo Completo per Cliente</h2>
+      <div class="card-actions">
+        <input type="text" id="stat-search" placeholder="&#128269; Cerca cliente..." oninput="renderStats()" style="width:200px;padding:6px 10px;font-size:12px">
+        <button class="btn btn-outline btn-sm" onclick="exportPDF('tutti')">&#128196; PDF</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV('tutti')">CSV</button>
+      </div>
+    </div>
+    <div class="card-body no-pad"><div class="tbl-wrap" id="stat-table"></div></div>
+  </div>
+</div>
+
+<!-- ==================== IMPORTA ==================== -->
+<div class="page" id="pg-importa">
+  <div class="card">
+    <div class="card-header"><h2>&#128229; Importa da file Excel</h2></div>
+    <div class="card-body">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)">
+        <div class="dz-icon">&#128196;</div>
+        <div class="dz-text">Trascina il file Excel qui</div>
+        <div class="dz-hint">oppure clicca per selezionare &middot; Formato .xlsx con fogli giornalieri</div>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+      <div id="import-preview" style="display:none;margin-top:24px">
+        <h3 style="color:var(--gold-light);margin-bottom:16px;font-size:16px" id="import-fname"></h3>
+        <div class="kpi-grid" id="import-kpi"></div>
+        <div class="btn-group" style="margin-top:20px">
+          <button class="btn btn-gold" onclick="confermaImport()">&#10004; Conferma Importazione</button>
+          <button class="btn btn-outline" onclick="annullaImport()">Annulla</button>
+        </div>
+        <div class="import-log" id="import-log" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><h2>&#128190; Ripristina da Backup</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">Carica un file JSON di backup per ripristinare tutti i dati</p>
+      <input type="file" id="restore-input" accept=".json" onchange="restoreBackup(this.files[0])" style="max-width:300px">
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ESPORTA ==================== -->
+<div class="page" id="pg-esporta">
+  <div class="card">
+    <div class="card-header"><h2>&#128230; Esporta Dati</h2></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchExpTab(this,'exp-all')">Tutti i Clienti</button>
+        <button class="tab-btn" onclick="switchExpTab(this,'exp-month')">Riepilogo Mensile</button>
+        <button class="tab-btn" onclick="switchExpTab(this,'exp-client')">Scheda Cliente</button>
+      </div>
+
+      <div id="exp-all" class="exp-panel">
+        <div class="filters-bar" style="margin-bottom:16px">
+          <div class="filter-group"><label>Mese</label><select id="e-mese"></select></div>
+          <div class="filter-group"><label>Anno</label><select id="e-anno"></select></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-gold" onclick="exportPDF('tutti')">&#128196; Esporta PDF</button>
+          <button class="btn btn-outline" onclick="exportCSV('tutti')">&#128196; Esporta CSV</button>
+        </div>
+      </div>
+      <div id="exp-month" class="exp-panel" style="display:none">
+        <div class="filters-bar" style="margin-bottom:16px">
+          <div class="filter-group"><label>Mese</label><select id="em-mese"></select></div>
+          <div class="filter-group"><label>Anno</label><select id="em-anno"></select></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-gold" onclick="exportPDF('mensile')">&#128196; Esporta PDF</button>
+          <button class="btn btn-outline" onclick="exportCSV('mensile')">&#128196; Esporta CSV</button>
+        </div>
+      </div>
+      <div id="exp-client" class="exp-panel" style="display:none">
+        <div class="filters-bar" style="margin-bottom:16px">
+          <div class="filter-group"><label>Cliente</label><select id="ec-cli"></select></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-gold" onclick="exportPDF('cliente')">&#128196; Esporta PDF</button>
+          <button class="btn btn-outline" onclick="exportCSV('cliente')">&#128196; Esporta CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-head"><h3 id="m-title"></h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-content" id="m-body"></div>
+    <div class="modal-foot" id="m-foot"></div>
+  </div>
+</div>
+
+<!-- PDF PREVIEW (fullscreen like Diario) -->
+<div id="pdf-preview" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);flex-direction:column" onclick="if(event.target===this)chiudiPdfPreview()">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0">
+    <span id="pdf-prev-title" style="font-size:16px;font-weight:700"></span>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-gold" onclick="scaricaPdfPreview()">SCARICA PDF</button>
+      <button class="btn btn-outline" onclick="chiudiPdfPreview()">Chiudi</button>
+    </div>
+  </div>
+  <iframe id="pdf-prev-iframe" style="flex:1;border:none;background:#525659"></iframe>
+</div>
+
+</div><!-- /app-screen -->
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+// ======================================================
+// SUPABASE CONFIG
+// ======================================================
+const SB_URL = 'https://lyutdicncmuqzjslnkka.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5dXRkaWNuY211cXpqc2xua2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTYwMjgsImV4cCI6MjA5MDEzMjAyOH0.IJm1H6KrIYIPdV2GQrZ9LpaUeI8nRAmZEkgLjAKfO0s';
+const SB_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5dXRkaWNuY211cXpqc2xua2thIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDU1NjAyOCwiZXhwIjoyMDkwMTMyMDI4fQ.KN2GPHgK8Rsk7CmYdf0HVbruPTXKYn2rmmUpaLfK-8E';
+
+async function sbRpc(fn, params={}) {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method:'POST',
+    headers:{'apikey':SB_SERVICE,'Authorization':'Bearer '+SB_SERVICE,'Content-Type':'application/json'},
+    body:JSON.stringify(params)
+  });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  return res.json();
+}
+
+// ======================================================
+// DATABASE (Supabase + localStorage cache)
+// ======================================================
+const SK = 'statistiche_v3';
+const MESI = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+let DB = { clienti:[], registrazioni:[] };
+let _loggedIn = false;
+let _currentUser = null;
+
+function saveCache() { localStorage.setItem(SK, JSON.stringify(DB)); }
+function loadCache() {
+  try { const d=JSON.parse(localStorage.getItem(SK)); if(d?.clienti) return d; } catch(e){}
+  return { clienti:[], registrazioni:[] };
+}
+// Alias for backward compat - all old save() calls now sync to Supabase handled per-function
+function save() { saveCache(); }
+
+async function loadAllFromSupabase() {
+  try {
+    const [clienti, regs] = await Promise.all([
+      sbRpc('list_clienti'),
+      sbRpc('list_registrazioni')
+    ]);
+    DB.clienti = clienti.map(c => ({id:c.id, nome:c.nome, tessere:c.tessere||[]}));
+    DB.registrazioni = regs.map(r => ({
+      id:r.id, clienteId:r.cliente_id, data:r.data, tessera:r.tessera||'',
+      totIn:+r.tot_in||0, bd:+r.bd||0, gwin:+r.gwin||0
+    }));
+    saveCache();
+    return true;
+  } catch(e) {
+    console.error('Load Supabase error:', e);
+    // Fallback to cache
+    DB = loadCache();
+    toast('Offline — dati dalla cache', 'info');
+    return false;
+  }
+}
+
+// ======================================================
+// LOGIN
+// ======================================================
+async function doLogin() {
+  const nome = document.getElementById('login-nome').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (!nome || !pw) return toast('Inserisci nome e password', 'error');
+  document.getElementById('login-btn').disabled = true;
+  document.getElementById('login-btn').textContent = 'Accesso...';
+  try {
+    const res = await sbRpc('login', {p_nome:nome, p_password:pw});
+    if (res.ok) {
+      _loggedIn = true;
+      _currentUser = res;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = '';
+      await loadAllFromSupabase();
+      popFilters();
+      renderDashboard();
+      toast('Benvenuto, ' + res.nome + '!');
+    } else {
+      toast('Nome o password errati', 'error');
+    }
+  } catch(e) {
+    // Offline fallback
+    toast('Errore connessione — provo offline', 'error');
+    DB = loadCache();
+    if (DB.clienti.length > 0) {
+      _loggedIn = true;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = '';
+      popFilters();
+      renderDashboard();
+      toast('Modalita\' offline — dati dalla cache', 'info');
+    }
+  }
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = 'Accedi';
+}
+
+function logout() {
+  _loggedIn = false;
+  _currentUser = null;
+  document.getElementById('login-screen').style.display = '';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-pw').value = '';
+}
+
+// Utility
+function fmt(n) {
+  if (n==null||isNaN(n)) return '0';
+  const neg = n<0, abs = Math.abs(Math.round(n));
+  return (neg?'-':'') + abs.toLocaleString('de-CH');
+}
+function fmtDate(d) { if(!d)return''; const p=d.split('-'); return p[2]+'.'+p[1]+'.'+p[0].slice(2); }
+function gdDate(dateStr, timeStr) {
+  if (timeStr && parseInt(timeStr.split(':')[0]) < 6) {
+    const dt = new Date(dateStr); dt.setDate(dt.getDate()-1);
+    return dt.toISOString().split('T')[0];
+  }
+  return dateStr;
+}
+function cliById(id) { return DB.clienti.find(c=>c.id===id); }
+function cliByName(n) { const u=n.trim().toUpperCase(); return DB.clienti.find(c=>c.nome.toUpperCase()===u); }
+function meseAnno(d) { const p=d.split('-'); return {a:+p[0],m:+p[1]}; }
+
+function toast(msg, type='success') {
+  const c=document.getElementById('toasts'), t=document.createElement('div');
+  t.className='toast '+type;
+  t.innerHTML=(type==='success'?'&#10004;':type==='error'?'&#10006;':'&#9432;')+' '+msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+
+// ======================================================
+// NAVIGATION
+// ======================================================
+const pageTitles = { dashboard:'Dashboard', inserimento:'Inserimento', registrazioni:'Registrazioni', clienti:'Clienti', statistiche:'Statistiche', importa:'Importa Excel', esporta:'Esporta PDF/CSV' };
+
+document.querySelectorAll('.nav-item').forEach(a => {
+  a.addEventListener('click', () => goPage(a.dataset.page));
+});
+
+function goPage(pg) {
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${pg}"]`)?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+pg).classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[pg]||'';
+  document.getElementById('sidebar').classList.remove('open');
+  popFilters();
+  if(pg==='dashboard') renderDashboard();
+  else if(pg==='inserimento') renderIns();
+  else if(pg==='registrazioni') { initRegFilters(); renderRegs(); }
+  else if(pg==='clienti') renderClienti();
+  else if(pg==='statistiche') renderStats();
+}
+
+// ======================================================
+// GLOBAL SEARCH
+// ======================================================
+function globalSearch(q) {
+  const el = document.getElementById('global-results');
+  q = q.trim().toUpperCase();
+  if (q.length < 2) { el.classList.remove('show'); return; }
+  const res = DB.clienti.filter(c=>c.nome.toUpperCase().includes(q)).slice(0,8);
+  if (!res.length) { el.classList.remove('show'); return; }
+
+  const perCli = {};
+  DB.registrazioni.forEach(r => {
+    if (!perCli[r.clienteId]) perCli[r.clienteId]={gd:new Set(),totIn:0};
+    perCli[r.clienteId].gd.add(r.data); perCli[r.clienteId].totIn+=r.totIn||0;
+  });
+
+  el.innerHTML = res.map(c => {
+    const s = perCli[c.id]||{gd:new Set(),totIn:0};
+    return `<div class="search-result-item" onclick="openScheda(${c.id});document.getElementById('global-results').classList.remove('show');document.getElementById('global-search').value=''">
+      <div class="sr-name">${c.nome}</div>
+      <div class="sr-sub">${s.gd.size} GD &middot; TOT.IN: ${fmt(s.totIn)}</div>
+    </div>`;
+  }).join('');
+  el.classList.add('show');
+}
+document.addEventListener('click', e => { if(!e.target.closest('.topbar-search')) document.getElementById('global-results').classList.remove('show'); });
+
+// ======================================================
+// FILTERS
+// ======================================================
+function popFilters() {
+  const mesi=new Set(), anni=new Set();
+  DB.registrazioni.forEach(r=>{ const ma=meseAnno(r.data); mesi.add(ma.m); anni.add(ma.a); });
+  const mOpt='<option value="">Tutti</option>'+[...mesi].sort((a,b)=>a-b).map(m=>`<option value="${m}">${MESI[m]}</option>`).join('');
+  const aOpt='<option value="">Tutti</option>'+[...anni].sort((a,b)=>b-a).map(a=>`<option value="${a}">${a}</option>`).join('');
+  ['d-mese','r-mese','s-mese','e-mese','em-mese'].forEach(id=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=mOpt;el.value=v;}});
+  ['d-anno','r-anno','s-anno','e-anno','em-anno'].forEach(id=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=aOpt;el.value=v;}});
+  const cOpt='<option value="">Tutti</option>'+DB.clienti.slice().sort((a,b)=>a.nome.localeCompare(b.nome)).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  ['r-cliente','ec-cli'].forEach(id=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=cOpt;el.value=v;}});
+  document.getElementById('nav-clienti-count').textContent = DB.clienti.length;
+}
+
+// Parse data libera: 26.03.26, 26/03/26, 26.03.2026, 26/03/2026, 2026-03-26
+function parseData(str) {
+  if(!str || !str.trim()) return '';
+  str = str.trim();
+  // Already ISO format
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // Replace / with .
+  str = str.replace(/\//g, '.');
+  // DD.MM.YY or DD.MM.YYYY
+  const m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if(m) {
+    let [,d,me,a] = m;
+    d = d.padStart(2,'0');
+    me = me.padStart(2,'0');
+    if(a.length === 2) a = '20' + a;
+    return `${a}-${me}-${d}`;
+  }
+  return '';
+}
+
+function filterRegs(regs,mId,aId,cId,dId,alId) {
+  let r=regs;
+  const m=mId?document.getElementById(mId)?.value:'';
+  const a=aId?document.getElementById(aId)?.value:'';
+  const c=cId?document.getElementById(cId)?.value:'';
+  const dalRaw=dId?document.getElementById(dId)?.value:'';
+  const alRaw=alId?document.getElementById(alId)?.value:'';
+  const dal=parseData(dalRaw);
+  const al=parseData(alRaw);
+  if(m) r=r.filter(x=>meseAnno(x.data).m==m);
+  if(a) r=r.filter(x=>meseAnno(x.data).a==a);
+  if(c) r=r.filter(x=>x.clienteId==c);
+  if(dal) r=r.filter(x=>x.data>=dal);
+  if(al) r=r.filter(x=>x.data<=al);
+  return r;
+}
+
+function aggClienti(regs) {
+  const p={};
+  regs.forEach(r=>{
+    if(!p[r.clienteId]) p[r.clienteId]={totIn:0,bd:0,gwin:0,gd:new Set()};
+    p[r.clienteId].totIn+=r.totIn||0;
+    p[r.clienteId].bd+=r.bd||0;
+    p[r.clienteId].gwin+=r.gwin||0;
+    p[r.clienteId].gd.add(r.data);
+  });
+  return p;
+}
+
+// ======================================================
+// DASHBOARD
+// ======================================================
+let chTop10, chTop10Bd, chTrend;
+let clsSort={key:'gd',dir:'desc'};
+function clsSortFn(k){if(clsSort.key===k)clsSort.dir=clsSort.dir==='asc'?'desc':'asc';else{clsSort.key=k;clsSort.dir='desc';}renderDashboard();}
+function renderDashboard() {
+  const regs = filterRegs(DB.registrazioni,'d-mese','d-anno');
+  const pc = aggClienti(regs);
+  const totIn=regs.reduce((s,r)=>s+(r.totIn||0),0);
+  const totBd=regs.reduce((s,r)=>s+(r.bd||0),0);
+  const totGwin=regs.reduce((s,r)=>s+(r.gwin||0),0);
+  const nCli=Object.keys(pc).length;
+  const allDates=new Set(regs.map(r=>r.data));
+
+  document.getElementById('dash-kpi').innerHTML=`
+    <div class="kpi-card gold"><span class="kpi-icon">&#9824;</span><div class="kpi-label">Total IN</div><div class="kpi-value">${fmt(totIn)}</div><div class="kpi-sub">CHF complessivo</div></div>
+    <div class="kpi-card blue"><span class="kpi-icon">&#128176;</span><div class="kpi-label">Bill Drop</div><div class="kpi-value">${fmt(totBd)}</div><div class="kpi-sub">CHF reali inseriti</div></div>
+    <div class="kpi-card ${totGwin>=0?'green':'red'}"><span class="kpi-icon">${totGwin>=0?'&#9650;':'&#9660;'}</span><div class="kpi-label">G WIN</div><div class="kpi-value">${fmt(totGwin)}</div><div class="kpi-sub">CHF ${totGwin>=0?'in attivo':'in passivo'}</div></div>
+    <div class="kpi-card purple"><span class="kpi-icon">&#9823;</span><div class="kpi-label">Clienti Attivi</div><div class="kpi-value">${nCli}</div><div class="kpi-sub">${allDates.size} giornate di gioco</div></div>
+  `;
+
+  // Top 10 chart
+  const top10=Object.entries(pc).sort((a,b)=>b[1].totIn-a[1].totIn).slice(0,10);
+  if(chTop10) chTop10.destroy();
+  chTop10=new Chart(document.getElementById('ch-top10'),{
+    type:'bar',
+    data:{
+      labels:top10.map(([id])=>cliById(+id)?.nome||'?'),
+      datasets:[
+        {label:'TOT.IN',data:top10.map(([,d])=>d.totIn),backgroundColor:'rgba(196,154,60,.55)',borderColor:'#c49a3c',borderWidth:1,borderRadius:4,barThickness:10},
+        {label:'BD',data:top10.map(([,d])=>d.bd),backgroundColor:'rgba(90,155,213,.45)',borderColor:'#5a9bd5',borderWidth:1,borderRadius:4,barThickness:10},
+        {label:'G WIN',data:top10.map(([,d])=>d.gwin),backgroundColor:top10.map(([,d])=>d.gwin>=0?'rgba(55,150,90,.5)':'rgba(192,70,63,.5)'),borderRadius:4,barThickness:10}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{labels:{color:'#7d8590',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#444c56',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#c9d1d9',font:{size:11}},grid:{display:false}}}
+    }
+  });
+
+  // Top 10 BD chart
+  const top10bd=Object.entries(pc).sort((a,b)=>b[1].bd-a[1].bd).slice(0,10);
+  if(chTop10Bd) chTop10Bd.destroy();
+  chTop10Bd=new Chart(document.getElementById('ch-top10bd'),{
+    type:'bar',
+    data:{
+      labels:top10bd.map(([id])=>cliById(+id)?.nome||'?'),
+      datasets:[
+        {label:'BD',data:top10bd.map(([,d])=>d.bd),backgroundColor:'rgba(90,155,213,.55)',borderColor:'#5a9bd5',borderWidth:1,borderRadius:4,barThickness:12},
+        {label:'G WIN',data:top10bd.map(([,d])=>d.gwin),backgroundColor:top10bd.map(([,d])=>d.gwin>=0?'rgba(55,150,90,.5)':'rgba(192,70,63,.5)'),borderRadius:4,barThickness:12}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{labels:{color:'#7d8590',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#444c56',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#c9d1d9',font:{size:11}},grid:{display:false}}}
+    }
+  });
+
+  // Monthly trend
+  const perM={};
+  regs.forEach(r=>{const ma=meseAnno(r.data);const k=ma.a+'-'+String(ma.m).padStart(2,'0');if(!perM[k])perM[k]={totIn:0,bd:0,gwin:0};perM[k].totIn+=r.totIn||0;perM[k].bd+=r.bd||0;perM[k].gwin+=r.gwin||0;});
+  const mk=Object.keys(perM).sort();
+  if(chTrend) chTrend.destroy();
+  chTrend=new Chart(document.getElementById('ch-trend'),{
+    type:'line',
+    data:{labels:mk.map(k=>{const[a,m]=k.split('-');return MESI[+m]+' '+a;}),
+      datasets:[
+        {label:'TOT.IN',data:mk.map(k=>perM[k].totIn),borderColor:'#c49a3c',backgroundColor:'rgba(196,154,60,.06)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#c49a3c'},
+        {label:'BD',data:mk.map(k=>perM[k].bd),borderColor:'#5a9bd5',backgroundColor:'rgba(90,155,213,.06)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#5a9bd5'},
+        {label:'G WIN',data:mk.map(k=>perM[k].gwin),borderColor:'#37965a',backgroundColor:'rgba(55,150,90,.06)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#37965a'}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7d8590',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#444c56'},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#444c56',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,.03)'}}}
+    }
+  });
+
+  // Classifica
+  const dashQ=(document.getElementById('dash-search')?.value||'').toUpperCase();
+  let cls=Object.entries(pc).map(([id,d])=>({id:+id,nome:cliById(+id)?.nome||'?',gd:d.gd.size,totIn:d.totIn,bd:d.bd,gwin:d.gwin,bdMedia:d.gd.size?d.bd/d.gd.size:0}));
+  // Sort
+  const sk=clsSort.key, sd=clsSort.dir;
+  cls.sort((a,b)=>{
+    if(sk==='nome') return sd==='asc'?a.nome.localeCompare(b.nome):b.nome.localeCompare(a.nome);
+    return sd==='asc'?(a[sk]||0)-(b[sk]||0):(b[sk]||0)-(a[sk]||0);
+  });
+  if(dashQ) cls=cls.filter(c=>c.nome.toUpperCase().includes(dashQ));
+
+  const clsCols=[{k:'nome',l:'Cliente'},{k:'gd',l:'Visite'},{k:'totIn',l:'TOT. IN'},{k:'bd',l:'BD'},{k:'gwin',l:'G WIN'},{k:'bdMedia',l:'BD Media/Visita'}];
+  document.getElementById('dash-classifica').innerHTML=`<table><thead><tr>
+    <th style="width:40px">#</th>${clsCols.map(c=>`<th class="${clsSort.key===c.k?'sort-'+clsSort.dir:''}" onclick="clsSortFn('${c.k}')" style="cursor:pointer">${c.l}</th>`).join('')}
+  </tr></thead><tbody>${cls.map((c,i)=>`<tr class="clickable" onclick="openScheda(${c.id})">
+    <td class="text-muted">${i+1}</td><td><strong>${c.nome}</strong></td>
+    <td><span class="badge-gd">${c.gd} ${c.gd===1?'visita':'visite'}</span></td>
+    <td>${fmt(c.totIn)}</td><td>${fmt(c.bd)}</td>
+    <td class="${c.gwin>=0?'text-pos':'text-neg'}">${fmt(c.gwin)}</td>
+    <td class="text-secondary">${fmt(c.bdMedia)}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ======================================================
+// INSERIMENTO
+// ======================================================
+let insSort={key:'id',dir:'desc'};
+function insSortFn(k){if(insSort.key===k)insSort.dir=insSort.dir==='asc'?'desc':'asc';else{insSort.key=k;insSort.dir='desc';}renderIns();}
+function renderIns() {
+  const oggi=new Date();
+  document.getElementById('f-data').value = String(oggi.getDate()).padStart(2,'0')+'.'+String(oggi.getMonth()+1).padStart(2,'0')+'.'+String(oggi.getFullYear()).slice(2);
+  let ultime = DB.registrazioni.slice().sort((a,b)=>b.id-a.id).slice(0,30);
+  // Sort
+  const ik=insSort.key, id2=insSort.dir;
+  ultime.sort((a,b)=>{
+    if(ik==='nome'){const na=cliById(a.clienteId)?.nome||'',nb=cliById(b.clienteId)?.nome||'';return id2==='asc'?na.localeCompare(nb):nb.localeCompare(na);}
+    if(ik==='id') return id2==='asc'?a.id-b.id:b.id-a.id;
+    let va=a[ik],vb=b[ik];
+    if(typeof va==='string') return id2==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+    return id2==='asc'?(va||0)-(vb||0):(vb||0)-(va||0);
+  });
+  const insCols=[{k:'data',l:'Data'},{k:'nome',l:'Cliente'},{k:'totIn',l:'TOT.IN'},{k:'bd',l:'BD'},{k:'gwin',l:'G WIN'}];
+  document.getElementById('ins-recenti').innerHTML = ultime.length ? `<table><thead><tr>
+    ${insCols.map(c=>`<th class="${insSort.key===c.k?'sort-'+insSort.dir:''}" onclick="insSortFn('${c.k}')" style="cursor:pointer">${c.l}</th>`).join('')}<th></th>
+  </tr></thead><tbody>${ultime.map(r=>{const c=cliById(r.clienteId);return`<tr>
+    <td>${fmtDate(r.data)}</td><td>${c?.nome||'?'}</td>
+    <td>${fmt(r.totIn)}</td><td>${fmt(r.bd)}</td>
+    <td class="${r.gwin>=0?'text-pos':'text-neg'}">${fmt(r.gwin)}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="delReg(${r.id})">&#10006;</button></td>
+  </tr>`;}).join('')}</tbody></table>` : '<div class="empty-state"><div class="es-icon">&#128203;</div><div class="es-text">Nessuna registrazione</div></div>';
+}
+
+async function salvaReg() {
+  const nome=document.getElementById('f-cliente').value.trim();
+  const tess=document.getElementById('f-tessera').value.trim();
+  const dataRaw=document.getElementById('f-data').value;
+  const data=parseData(dataRaw);
+  const ora=document.getElementById('f-ora').value;
+  const ti=parseFloat(document.getElementById('f-totin').value)||0;
+  const bd=parseFloat(document.getElementById('f-bd').value)||0;
+  const gw=parseFloat(document.getElementById('f-gwin').value)||0;
+  if(!nome) return toast('Inserisci il cliente','error');
+  if(!data) return toast('Data non valida (usa gg.mm.aa)','error');
+  if(!ti&&!bd&&!gw) return toast('Inserisci almeno un valore','error');
+  try {
+    let cli=cliByName(nome);
+    if(!cli){
+      const r=await sbRpc('upsert_cliente',{p_nome:nome.toUpperCase(),p_tessere:tess?[tess]:[]});
+      cli={id:r.id,nome:r.nome,tessere:r.tessere||[]};
+      DB.clienti.push(cli);
+      toast('Nuovo cliente: '+cli.nome,'info');
+    } else if(tess&&!(cli.tessere||[]).includes(tess)){
+      cli.tessere.push(tess);
+      await sbRpc('upsert_cliente',{p_id:cli.id,p_nome:cli.nome,p_tessere:cli.tessere});
+    }
+    const gdD=gdDate(data,ora);
+    const res=await sbRpc('upsert_registrazione',{p_cliente_id:cli.id,p_data:gdD,p_tessera:tess,p_tot_in:ti,p_bd:bd,p_gwin:gw});
+    DB.registrazioni.push({id:res.id,clienteId:cli.id,tessera:tess,data:gdD,totIn:ti,bd,gwin:gw});
+    saveCache(); toast('Registrazione salvata!'); resetForm(); renderIns();
+  } catch(e) { toast('Errore: '+e.message,'error'); }
+}
+
+function resetForm(){['f-cliente','f-tessera','f-totin','f-bd','f-gwin'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-ora').value='12:00';}
+
+async function delReg(id){
+  if(!confirm('Eliminare questa registrazione?'))return;
+  try { await sbRpc('delete_registrazione',{p_id:id}); } catch(e) { toast('Errore','error'); return; }
+  DB.registrazioni=DB.registrazioni.filter(r=>r.id!==id);saveCache();toast('Eliminata');renderIns();
+}
+
+// Autocomplete
+let acI=-1;
+function acCliente(inp){
+  const v=inp.value.trim().toUpperCase(),list=document.getElementById('f-ac');
+  const all=DB.clienti.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
+  const m = v.length > 0 ? all.filter(c=>c.nome.toUpperCase().includes(v)).slice(0,15) : all.slice(0,15);
+  if(!m.length){list.classList.remove('show');return;}
+  const pc=aggClienti(DB.registrazioni);
+  list.innerHTML=m.map(c=>{
+    const s=pc[c.id]; const gd=s?s.gd.size:0;
+    return `<div class="ac-item" onclick="acSel('${c.nome.replace(/'/g,"\\'")}','${(c.tessere||[])[0]||''}')">
+      <div><div class="ac-name">${c.nome}</div><div class="ac-sub">${gd} ${gd===1?'visita':'visite'}</div></div>
+      ${(c.tessere||[])[0]?'<div class="ac-sub">'+c.tessere[0]+'</div>':''}
+    </div>`;
+  }).join('');
+  list.classList.add('show'); acI=-1;
+}
+function acSel(n,t){document.getElementById('f-cliente').value=n;if(t)document.getElementById('f-tessera').value=t;document.getElementById('f-ac').classList.remove('show');}
+function acKeyDown(e){
+  const list=document.getElementById('f-ac'),items=list.querySelectorAll('.ac-item');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();acI=Math.min(acI+1,items.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acI=Math.max(acI-1,0);}
+  else if(e.key==='Enter'&&acI>=0){e.preventDefault();items[acI].click();return;}
+  else return;
+  items.forEach((it,i)=>it.classList.toggle('sel',i===acI));
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.ac-wrap'))document.querySelectorAll('.ac-list').forEach(l=>l.classList.remove('show'));});
+
+// ======================================================
+// REGISTRAZIONI
+// ======================================================
+let regSort='data', regDir='desc';
+let _regInited=false;
+function initRegFilters(){
+  if(_regInited) return;
+  _regInited=true;
+  popFilters();
+  const now=new Date();
+  const m=now.getMonth()+1, a=now.getFullYear();
+  const elM=document.getElementById('r-mese');
+  const elA=document.getElementById('r-anno');
+  if(elM) elM.value=String(m);
+  if(elA) elA.value=String(a);
+}
+function renderRegs(){
+  popFilters();
+  let regs=filterRegs(DB.registrazioni,'r-mese','r-anno','r-cliente','r-dal','r-al');
+  const regQ=(document.getElementById('reg-search')?.value||'').toUpperCase();
+  if(regQ) regs=regs.filter(r=>{const c=cliById(r.clienteId);return (c?.nome||'').toUpperCase().includes(regQ);});
+  regs=regs.slice().sort((a,b)=>{
+    let va=a[regSort],vb=b[regSort];
+    if(regSort==='nome'){va=cliById(a.clienteId)?.nome||'';vb=cliById(b.clienteId)?.nome||'';}
+    if(typeof va==='string')return regDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+    return regDir==='asc'?(va||0)-(vb||0):(vb||0)-(va||0);
+  });
+  document.getElementById('reg-count').textContent=`${regs.length} Registrazioni`;
+  const cols=[{k:'data',l:'Data GD'},{k:'nome',l:'Cliente'},{k:'tessera',l:'Tessera'},{k:'totIn',l:'TOT. IN'},{k:'bd',l:'BD'},{k:'gwin',l:'G WIN'}];
+  document.getElementById('reg-table').innerHTML=`<table><thead><tr>
+    ${cols.map(c=>`<th class="${regSort===c.k?'sort-'+regDir:''}" onclick="regSortFn('${c.k}')">${c.l}</th>`).join('')}<th></th>
+  </tr></thead><tbody>${regs.map(r=>{const c=cliById(r.clienteId);return`<tr>
+    <td>${fmtDate(r.data)}</td>
+    <td><strong class="text-gold" style="cursor:pointer" onclick="openScheda(${r.clienteId})">${c?.nome||'?'}</strong></td>
+    <td class="text-muted" style="font-size:11px">${r.tessera||''}</td>
+    <td>${fmt(r.totIn)}</td><td>${fmt(r.bd)}</td>
+    <td class="${r.gwin>=0?'text-pos':'text-neg'}">${fmt(r.gwin)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="modalEditReg(${r.id})" title="Modifica">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="delReg(${r.id});renderRegs()" title="Elimina">&#10006;</button>
+    </td>
+  </tr>`;}).join('')}</tbody></table>`;
+}
+function regSortFn(c){if(regSort===c)regDir=regDir==='asc'?'desc':'asc';else{regSort=c;regDir=c==='data'?'desc':'asc';}renderRegs();}
+function clearRegFilters(){['r-cliente','r-mese','r-anno'].forEach(id=>document.getElementById(id).value='');['r-dal','r-al'].forEach(id=>document.getElementById(id).value='');renderRegs();}
+
+function modalEditReg(id){
+  const r=DB.registrazioni.find(x=>x.id===id);if(!r)return;
+  const c=cliById(r.clienteId);
+  const d=r.data.split('-');
+  const dataFmt=d[2]+'.'+d[1]+'.'+d[0].slice(2);
+  document.getElementById('m-title').textContent='Modifica Registrazione';
+  document.getElementById('m-body').innerHTML=`
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:span 2">
+        <label class="form-label">Cliente</label>
+        <input type="text" id="er-cliente" value="${c?.nome||''}" placeholder="Nome cliente">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data GD</label>
+        <input type="text" id="er-data" value="${dataFmt}" placeholder="gg.mm.aa">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tessera</label>
+        <input type="text" id="er-tessera" value="${r.tessera||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">TOT. IN</label>
+        <input type="number" id="er-totin" value="${r.totIn||0}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">BD</label>
+        <input type="number" id="er-bd" value="${r.bd||0}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">G WIN</label>
+        <input type="number" id="er-gwin" value="${r.gwin||0}">
+      </div>
+    </div>`;
+  document.getElementById('m-foot').innerHTML=`
+    <button class="btn btn-outline" onclick="closeModal()">Annulla</button>
+    <button class="btn btn-gold" onclick="salvaEditReg(${id})">Salva</button>`;
+  openModal();
+}
+async function salvaEditReg(id){
+  const r=DB.registrazioni.find(x=>x.id===id);if(!r)return;
+  const nome=document.getElementById('er-cliente').value.trim().toUpperCase();
+  const dataP=parseData(document.getElementById('er-data').value);
+  const tess=document.getElementById('er-tessera').value.trim();
+  const ti=parseFloat(document.getElementById('er-totin').value)||0;
+  const bd=parseFloat(document.getElementById('er-bd').value)||0;
+  const gw=parseFloat(document.getElementById('er-gwin').value)||0;
+  if(!nome)return toast('Inserisci il cliente','error');
+  if(!dataP)return toast('Data non valida','error');
+  try{
+    let cli=cliByName(nome);
+    if(!cli){
+      const nc=await sbRpc('upsert_cliente',{p_nome:nome,p_tessere:tess?[tess]:[]});
+      cli={id:nc.id,nome:nc.nome,tessere:nc.tessere||[]};DB.clienti.push(cli);toast('Nuovo cliente: '+nome,'info');
+    }
+    await sbRpc('upsert_registrazione',{p_id:id,p_cliente_id:cli.id,p_data:dataP,p_tessera:tess,p_tot_in:ti,p_bd:bd,p_gwin:gw});
+    r.clienteId=cli.id;r.data=dataP;r.tessera=tess;r.totIn=ti;r.bd=bd;r.gwin=gw;
+    saveCache();closeModal();toast('Registrazione aggiornata');renderRegs();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+// ======================================================
+// CLIENTI
+// ======================================================
+let cliSort={key:'nome',dir:'asc'};
+function cliSortFn(k){if(cliSort.key===k)cliSort.dir=cliSort.dir==='asc'?'desc':'asc';else{cliSort.key=k;cliSort.dir=k==='nome'?'asc':'desc';}renderClienti();}
+function renderClienti(){
+  const q=(document.getElementById('cli-search')?.value||'').toUpperCase();
+  const pc=aggClienti(DB.registrazioni);
+  let lista=DB.clienti.map(c=>{const s=pc[c.id]||{gd:new Set(),totIn:0,bd:0,gwin:0};return{...c,gd:s.gd.size||0,totIn:s.totIn||0,bd:s.bd||0,gwin:s.gwin||0};});
+  if(q) lista=lista.filter(c=>c.nome.toUpperCase().includes(q));
+  const ck=cliSort.key, cd=cliSort.dir;
+  lista.sort((a,b)=>{
+    if(ck==='nome') return cd==='asc'?a.nome.localeCompare(b.nome):b.nome.localeCompare(a.nome);
+    return cd==='asc'?(a[ck]||0)-(b[ck]||0):(b[ck]||0)-(a[ck]||0);
+  });
+  document.getElementById('cli-count').textContent=`${DB.clienti.length} Clienti`;
+  const cliCols=[{k:'nome',l:'Nome',w:'30%',al:'left'},{k:'gd',l:'Visite',w:'12%',al:'center'},{k:'totIn',l:'TOT. IN',w:'14%',al:'right'},{k:'bd',l:'BD',w:'14%',al:'right'},{k:'gwin',l:'G WIN',w:'14%',al:'right'}];
+  document.getElementById('cli-table').innerHTML=lista.length?`<table style="table-layout:fixed;width:100%"><thead><tr>
+    ${cliCols.map(c=>`<th style="width:${c.w};text-align:${c.al}" class="${cliSort.key===c.k?'sort-'+cliSort.dir:''}" onclick="cliSortFn('${c.k}')">${c.l}</th>`).join('')}<th style="width:16%;text-align:right">Azioni</th>
+  </tr></thead><tbody>${lista.map(c=>{
+    return`<tr class="clickable" onclick="openScheda(${c.id})">
+      <td><strong class="text-gold">${c.nome}</strong>${(c.tessere||[]).length?'<div style="font-size:10px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis">'+c.tessere[0]+(c.tessere.length>1?' +'+(c.tessere.length-1):'')+'</div>':''}</td>
+      <td style="text-align:center"><span class="badge-gd">${c.gd}</span></td>
+      <td style="text-align:right">${fmt(c.totIn)}</td>
+      <td style="text-align:right">${fmt(c.bd)}</td>
+      <td style="text-align:right" class="${c.gwin>=0?'text-pos':'text-neg'}">${fmt(c.gwin)}</td>
+      <td style="text-align:right" onclick="event.stopPropagation()">
+        <button class="btn btn-outline btn-sm" onclick="modalRinomina(${c.id})" title="Rinomina">&#9998;</button>
+        <button class="btn btn-danger btn-sm" onclick="delCliente(${c.id})" title="Elimina">&#10006;</button>
+      </td>
+    </tr>`;}).join('')}</tbody></table>`:'<div class="empty-state"><div class="es-icon">&#9823;</div><div class="es-text">Nessun cliente trovato</div></div>';
+}
+
+function modalNuovoCliente(){
+  document.getElementById('m-title').textContent='Nuovo Cliente';
+  document.getElementById('m-body').innerHTML=`
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Nome</label><input type="text" id="mc-nome" placeholder="COGNOME NOME"></div>
+    <div class="form-group"><label class="form-label">N. Tessera (opzionale)</label><input type="text" id="mc-tess"></div>`;
+  document.getElementById('m-foot').innerHTML=`<button class="btn btn-outline" onclick="closeModal()">Annulla</button><button class="btn btn-gold" onclick="saveNewCli()">Salva</button>`;
+  openModal();
+}
+async function saveNewCli(){
+  const n=document.getElementById('mc-nome').value.trim().toUpperCase();
+  const t=document.getElementById('mc-tess').value.trim();
+  if(!n)return toast('Inserisci il nome','error');
+  if(cliByName(n))return toast('Cliente esistente','error');
+  try{
+    const r=await sbRpc('upsert_cliente',{p_nome:n,p_tessere:t?[t]:[]});
+    DB.clienti.push({id:r.id,nome:r.nome,tessere:r.tessere||[]});
+    saveCache();closeModal();toast('Cliente aggiunto: '+n);renderClienti();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function modalRinomina(id){
+  const c=cliById(id);if(!c)return;
+  document.getElementById('m-title').textContent='Modifica Cliente';
+  document.getElementById('m-body').innerHTML=`
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Nome</label><input type="text" id="mc-rn" value="${c.nome}"></div>
+    <div class="form-group"><label class="form-label">Tessere (separa con virgola)</label><input type="text" id="mc-rt" value="${(c.tessere||[]).join(', ')}"></div>`;
+  document.getElementById('m-foot').innerHTML=`<button class="btn btn-outline" onclick="closeModal()">Annulla</button><button class="btn btn-gold" onclick="saveRename(${id})">Salva</button>`;
+  openModal();
+}
+async function saveRename(id){
+  const c=cliById(id);if(!c)return;
+  const n=document.getElementById('mc-rn').value.trim().toUpperCase();
+  const t=document.getElementById('mc-rt').value.split(',').map(x=>x.trim()).filter(Boolean);
+  if(!n)return toast('Inserisci il nome','error');
+  if(DB.clienti.find(x=>x.id!==id&&x.nome.toUpperCase()===n))return toast('Nome gia\' esistente','error');
+  try{
+    await sbRpc('upsert_cliente',{p_id:id,p_nome:n,p_tessere:t});
+    c.nome=n;c.tessere=t;saveCache();closeModal();toast('Cliente aggiornato');renderClienti();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+async function delCliente(id){
+  const c=cliById(id);if(!c)return;
+  const n=DB.registrazioni.filter(r=>r.clienteId===id).length;
+  if(!confirm(`Eliminare ${c.nome}?${n?'\n'+n+' registrazioni verranno eliminate!':''}`))return;
+  try{
+    await sbRpc('delete_cliente',{p_id:id});
+    DB.clienti=DB.clienti.filter(x=>x.id!==id);
+    DB.registrazioni=DB.registrazioni.filter(r=>r.clienteId!==id);
+    saveCache();toast('Cliente eliminato');renderClienti();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+// ======================================================
+// SCHEDA CLIENTE (MODAL)
+// ======================================================
+function openScheda(id){
+  const c=cliById(id);if(!c)return;
+  const regs=DB.registrazioni.filter(r=>r.clienteId===id).sort((a,b)=>a.data.localeCompare(b.data));
+  const ti=regs.reduce((s,r)=>s+(r.totIn||0),0);
+  const bd=regs.reduce((s,r)=>s+(r.bd||0),0);
+  const gw=regs.reduce((s,r)=>s+(r.gwin||0),0);
+  const dates=regs.map(r=>r.data);
+  const gdSet=new Set(dates);
+  const gd=gdSet.size;
+
+  // Media visite mensili
+  const mesiSet=new Set(dates.map(d=>{const p=d.split('-');return p[0]+'-'+p[1];}));
+  const mediaVisiteMese = mesiSet.size ? (gd / mesiSet.size) : 0;
+
+  // Giorno preferito (giorno della settimana più frequente)
+  const GIORNI = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const giorniCount = [0,0,0,0,0,0,0];
+  gdSet.forEach(d => { giorniCount[new Date(d).getDay()]++; });
+  const maxGiorno = giorniCount.indexOf(Math.max(...giorniCount));
+  const giornoPreferito = gd > 0 ? GIORNI[maxGiorno] : '-';
+  const giornoPrefCount = giorniCount[maxGiorno];
+
+  // Media BD per visita
+  const mediaBd = gd ? bd / gd : 0;
+
+  // Prima e ultima visita
+  const primaVisita = dates.length ? fmtDate(dates[0]) : '-';
+  const ultimaVisita = dates.length ? fmtDate(dates[dates.length-1]) : '-';
+
+  document.getElementById('m-title').textContent=c.nome;
+  document.getElementById('m-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+      <div style="background:var(--bg-card);padding:16px 20px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">TOT. IN</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gold-light)">${fmt(ti)} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">CHF</span></div>
+      </div>
+      <div style="background:var(--bg-card);padding:16px 20px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">BILL DROP</div>
+        <div style="font-size:24px;font-weight:800;color:var(--blue)">${fmt(bd)} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">CHF</span></div>
+      </div>
+      <div style="background:var(--bg-card);padding:16px 20px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">G WIN <span style="font-size:10px">${gw>=0?'(cliente perde)':'(cliente vince)'}</span></div>
+        <div style="font-size:24px;font-weight:800;color:${gw>=0?'var(--green-light)':'var(--red-light)'}">${fmt(gw)} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">CHF</span></div>
+      </div>
+      <div style="background:var(--bg-card);padding:16px 20px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">VISITE</div>
+        <div style="font-size:24px;font-weight:800;color:var(--text-primary)">${gd} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">${gd===1?'giornata':'giornate'}</span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="text-align:center;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${mediaVisiteMese.toFixed(1)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">visite/mese</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${giornoPreferito}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">giorno preferito (${giornoPrefCount}x)</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${fmt(mediaBd)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">media BD/visita</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${fmt(gd?ti/gd:0)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">media TOT.IN/visita</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:16px;font-size:12px;color:var(--text-secondary);flex-wrap:wrap">
+      <span>Tessere: ${(c.tessere||[]).join(', ')||'nessuna'}</span>
+      <span>&middot;</span>
+      <span>Prima visita: ${primaVisita}</span>
+      <span>&middot;</span>
+      <span>Ultima visita: ${ultimaVisita}</span>
+    </div>
+    <div class="tbl-wrap" style="max-height:280px;overflow-y:auto"><table><thead><tr>
+      <th>Data</th><th>Tessera</th><th>TOT. IN</th><th>BD</th><th>G WIN</th>
+    </tr></thead><tbody>${regs.map(r=>`<tr>
+      <td>${fmtDate(r.data)}</td><td class="text-muted" style="font-size:11px">${r.tessera||''}</td>
+      <td>${fmt(r.totIn)}</td><td>${fmt(r.bd)}</td>
+      <td class="${r.gwin>=0?'text-pos':'text-neg'}">${fmt(r.gwin)}</td>
+    </tr>`).join('')}
+    <tr style="font-weight:700;border-top:2px solid var(--border)">
+      <td>TOTALE</td><td></td><td>${fmt(ti)}</td><td>${fmt(bd)}</td>
+      <td class="${gw>=0?'text-pos':'text-neg'}">${fmt(gw)}</td>
+    </tr></tbody></table></div>`;
+
+  document.getElementById('m-foot').innerHTML=`
+    <button class="btn btn-outline btn-sm" onclick="closeModal();setTimeout(()=>exportPDF('cliente',${id}),200)">&#128196; PDF</button>
+    <button class="btn btn-outline btn-sm" onclick="closeModal();setTimeout(()=>exportCSV('cliente',${id}),200)">CSV</button>
+    <button class="btn btn-gold" onclick="closeModal()">Chiudi</button>`;
+  openModal();
+}
+
+// ======================================================
+// STATISTICHE
+// ======================================================
+let chGwin, chBd;
+let statSort={key:'totIn',dir:'desc'};
+function statSortFn(k){if(statSort.key===k)statSort.dir=statSort.dir==='asc'?'desc':'asc';else{statSort.key=k;statSort.dir='desc';}renderStats();}
+function renderStats(){
+  const regs=filterRegs(DB.registrazioni,'s-mese','s-anno');
+  const pc=aggClienti(regs);
+  const ti=regs.reduce((s,r)=>s+(r.totIn||0),0);
+  const bd=regs.reduce((s,r)=>s+(r.bd||0),0);
+  const gw=regs.reduce((s,r)=>s+(r.gwin||0),0);
+  const n=Object.keys(pc).length;
+  const winners=Object.values(pc).filter(d=>d.gwin>0).length;
+  const losers=Object.values(pc).filter(d=>d.gwin<0).length;
+
+  document.getElementById('stat-kpi').innerHTML=`
+    <div class="kpi-card gold"><div class="kpi-label">TOT. IN</div><div class="kpi-value">${fmt(ti)}</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">BD</div><div class="kpi-value">${fmt(bd)}</div></div>
+    <div class="kpi-card ${gw>=0?'green':'red'}"><div class="kpi-label">G WIN</div><div class="kpi-value">${fmt(gw)}</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Clienti in perdita</div><div class="kpi-value">${winners}</div><div class="kpi-sub">G WIN + (casino vince)</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Clienti in vincita</div><div class="kpi-value">${losers}</div><div class="kpi-sub">G WIN - (casino perde)</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Media/Cliente</div><div class="kpi-value">${fmt(n?ti/n:0)}</div></div>
+  `;
+
+  // G WIN chart
+  const gwinArr=Object.entries(pc).map(([id,d])=>({nome:cliById(+id)?.nome||'?',gwin:d.gwin})).sort((a,b)=>b.gwin-a.gwin);
+  const top=gwinArr.slice(0,6), bottom=gwinArr.filter(x=>x.gwin<0).sort((a,b)=>a.gwin-b.gwin).slice(0,6);
+  const dist=[...top,...bottom.filter(b=>!top.find(t=>t.nome===b.nome))];
+  if(chGwin)chGwin.destroy();
+  chGwin=new Chart(document.getElementById('ch-gwin'),{
+    type:'bar',data:{labels:dist.map(d=>d.nome),datasets:[{label:'G WIN',data:dist.map(d=>d.gwin),backgroundColor:dist.map(d=>d.gwin>=0?'rgba(55,150,90,.5)':'rgba(192,70,63,.5)'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#444c56',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#c9d1d9',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Top BD
+  const topBd=Object.entries(pc).sort((a,b)=>b[1].bd-a[1].bd).slice(0,10);
+  if(chBd)chBd.destroy();
+  chBd=new Chart(document.getElementById('ch-bd'),{
+    type:'bar',data:{labels:topBd.map(([id])=>cliById(+id)?.nome||'?'),datasets:[{label:'BD',data:topBd.map(([,d])=>d.bd),backgroundColor:'rgba(90,155,213,.45)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#444c56',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#c9d1d9',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Table
+  const statQ=(document.getElementById('stat-search')?.value||'').toUpperCase();
+  let rows=Object.entries(pc).map(([id,d])=>({id:+id,nome:cliById(+id)?.nome||'?',gd:d.gd.size,totIn:d.totIn,bd:d.bd,gwin:d.gwin,bdMedia:d.gd.size?d.bd/d.gd.size:0}));
+  const stk=statSort.key, std=statSort.dir;
+  rows.sort((a,b)=>{
+    if(stk==='nome') return std==='asc'?a.nome.localeCompare(b.nome):b.nome.localeCompare(a.nome);
+    return std==='asc'?(a[stk]||0)-(b[stk]||0):(b[stk]||0)-(a[stk]||0);
+  });
+  if(statQ) rows=rows.filter(r=>r.nome.toUpperCase().includes(statQ));
+  const stCols=[{k:'nome',l:'Cliente'},{k:'gd',l:'Visite'},{k:'totIn',l:'TOT. IN'},{k:'bd',l:'BD'},{k:'gwin',l:'G WIN'},{k:'bdMedia',l:'BD Media/Visita'}];
+  document.getElementById('stat-table').innerHTML=`<table><thead><tr>
+    ${stCols.map(c=>`<th class="${statSort.key===c.k?'sort-'+statSort.dir:''}" onclick="statSortFn('${c.k}')" style="cursor:pointer">${c.l}</th>`).join('')}
+  </tr></thead><tbody>${rows.map(r=>`<tr class="clickable" onclick="openScheda(${r.id})">
+    <td><strong>${r.nome}</strong></td><td><span class="badge-gd">${r.gd} ${r.gd===1?'visita':'visite'}</span></td>
+    <td>${fmt(r.totIn)}</td><td>${fmt(r.bd)}</td>
+    <td class="${r.gwin>=0?'text-pos':'text-neg'}">${fmt(r.gwin)}</td>
+    <td class="text-secondary">${fmt(r.bdMedia)}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ======================================================
+// IMPORT EXCEL
+// ======================================================
+let impBuf=null;
+function handleDrop(e){e.preventDefault();e.target.closest('.drop-zone').classList.remove('dragover');handleFile(e.dataTransfer.files[0]);}
+function handleFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){try{parseXL(XLSX.read(e.target.result,{type:'array'}),file.name);}catch(err){toast('Errore: '+err.message,'error');}};
+  reader.readAsArrayBuffer(file);
+}
+function parseXL(wb,fname){
+  impBuf={fname,clienti:{},regs:[],nNew:0};
+  wb.SheetNames.forEach(sn=>{
+    const m=sn.match(/^(\d{2})\.(\d{2})\.(\d{2,4})$/);if(!m)return;
+    let[,g,me,a]=m;if(a.length===2)a='20'+a;
+    const dataGD=`${a}-${me}-${g}`;
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
+    let start=3;
+    for(let i=0;i<Math.min(5,data.length);i++){if(data[i]&&data[i][0]&&String(data[i][0]).toUpperCase().includes('CLIENT')){start=i+2;break;}}
+    for(let i=start;i<data.length;i++){
+      const row=data[i];if(!row||!row[0])continue;
+      const nome=String(row[0]).trim().toUpperCase();if(nome.length<2)continue;
+      const tess=row[1]?String(Math.floor(Number(row[1]))):'';
+      const ti=typeof row[3]==='number'?row[3]:parseFloat(row[3])||0;
+      const bd=typeof row[4]==='number'?row[4]:parseFloat(row[4])||0;
+      const gw=typeof row[5]==='number'?row[5]:parseFloat(row[5])||0;
+      if(!impBuf.clienti[nome])impBuf.clienti[nome]={tessere:new Set()};
+      if(tess&&tess!=='NaN')impBuf.clienti[nome].tessere.add(tess);
+      if(ti||bd||gw) impBuf.regs.push({nome,tessera:tess!=='NaN'?tess:'',data:dataGD,totIn:ti,bd,gwin:gw});
+    }
+  });
+  Object.keys(impBuf.clienti).forEach(n=>{if(!cliByName(n))impBuf.nNew++;});
+  document.getElementById('import-fname').textContent=fname;
+  document.getElementById('import-kpi').innerHTML=`
+    <div class="kpi-card gold"><div class="kpi-label">Clienti trovati</div><div class="kpi-value">${Object.keys(impBuf.clienti).length}</div><div class="kpi-sub">${impBuf.nNew} nuovi</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Registrazioni</div><div class="kpi-value">${impBuf.regs.length}</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Fogli/Giorni</div><div class="kpi-value">${wb.SheetNames.length}</div></div>`;
+  document.getElementById('import-preview').style.display='';
+  document.getElementById('import-log').style.display='none';
+}
+async function confermaImport(){
+  if(!impBuf)return;
+  const log=document.getElementById('import-log');log.style.display='';log.innerHTML='<div class="log-ok">Invio dati al server...</div>';
+  try{
+    // Build bulk data array
+    const bulkData=impBuf.regs.map(r=>({
+      nome:r.nome, tessere:[...(impBuf.clienti[r.nome]?.tessere||[])],
+      data:r.data, tessera:r.tessera, tot_in:r.totIn, bd:r.bd, gwin:r.gwin
+    }));
+    const res=await sbRpc('bulk_import',{p_data:bulkData});
+    log.innerHTML=`<div class="log-ok"><strong>Importazione completata!</strong></div>`;
+    log.innerHTML+=`<div class="log-ok">Clienti aggiunti: ${res.clienti_aggiunti}</div>`;
+    log.innerHTML+=`<div class="log-ok">Registrazioni: ${res.registrazioni_aggiunte}</div>`;
+    if(res.duplicati_saltati)log.innerHTML+=`<div class="log-warn">Duplicati saltati: ${res.duplicati_saltati}</div>`;
+    toast(`Importati ${res.registrazioni_aggiunte} registrazioni, ${res.clienti_aggiunti} nuovi clienti!`);
+    // Reload all data from Supabase
+    await loadAllFromSupabase();
+    popFilters();
+  }catch(e){
+    log.innerHTML+=`<div class="log-err">Errore: ${e.message}</div>`;
+    toast('Errore importazione','error');
+  }
+  impBuf=null;
+}
+function annullaImport(){impBuf=null;document.getElementById('import-preview').style.display='none';document.getElementById('file-input').value='';}
+
+// ======================================================
+// EXPORT PDF / CSV
+// ======================================================
+function switchExpTab(btn,id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.querySelectorAll('.exp-panel').forEach(p=>p.style.display='none');
+  document.getElementById(id).style.display='';
+}
+
+function getExpData(tipo,cliId){
+  let regs,title;
+  if(tipo==='tutti'){
+    regs=filterRegs(DB.registrazioni,'e-mese','e-anno');
+    const m=document.getElementById('e-mese')?.value,a=document.getElementById('e-anno')?.value;
+    title='Riepilogo'+(m?' '+MESI[+m]:'')+(a?' '+a:'')+' - Tutti i Clienti';
+  } else if(tipo==='mensile'){
+    regs=filterRegs(DB.registrazioni,'em-mese','em-anno');
+    const m=document.getElementById('em-mese')?.value,a=document.getElementById('em-anno')?.value;
+    title='Mensile'+(m?' '+MESI[+m]:'')+(a?' '+a:'');
+  } else if(tipo==='cliente'){
+    const id=cliId||+document.getElementById('ec-cli')?.value;
+    if(!id){toast('Seleziona un cliente','error');return null;}
+    regs=DB.registrazioni.filter(r=>r.clienteId===id);
+    title='Scheda '+(cliById(id)?.nome||'?');
+  } else if(tipo==='filtro'){
+    regs=filterRegs(DB.registrazioni,'r-mese','r-anno','r-cliente','r-dal','r-al');
+    title='Registrazioni Filtrate';
+  }
+  const pc={};
+  regs.forEach(r=>{
+    if(!pc[r.clienteId])pc[r.clienteId]={totIn:0,bd:0,gwin:0,gd:new Set(),regs:[]};
+    pc[r.clienteId].totIn+=r.totIn||0;pc[r.clienteId].bd+=r.bd||0;pc[r.clienteId].gwin+=r.gwin||0;
+    pc[r.clienteId].gd.add(r.data);pc[r.clienteId].regs.push(r);
+  });
+  const rows=Object.entries(pc).map(([id,d])=>{const c=cliById(+id);return{nome:c?.nome||'?',tessere:(c?.tessere||[]).join(', '),gd:d.gd.size,totIn:d.totIn,bd:d.bd,gwin:d.gwin,regs:d.regs.sort((a,b)=>a.data.localeCompare(b.data))};}).sort((a,b)=>b.totIn-a.totIn);
+  return{title,rows,regs};
+}
+
+// ======================================================
+// PDF PREVIEW (fullscreen come Diario) + CSV download diretto
+// ======================================================
+let _pdfBlob=null, _pdfName='';
+function mostraPdfPreview(doc, filename, titolo){
+  _pdfName=filename;
+  const blob=doc.output('blob');
+  _pdfBlob=blob;
+  const url=URL.createObjectURL(blob);
+  document.getElementById('pdf-prev-title').textContent=titolo||'Anteprima PDF';
+  document.getElementById('pdf-prev-iframe').src=url;
+  const el=document.getElementById('pdf-preview');
+  el.style.display='flex';
+}
+function scaricaPdfPreview(){
+  if(!_pdfBlob)return;
+  const a=document.createElement('a');a.href=URL.createObjectURL(_pdfBlob);a.download=_pdfName||'documento.pdf';a.click();
+  toast('PDF scaricato!');
+}
+function chiudiPdfPreview(){
+  document.getElementById('pdf-preview').style.display='none';
+  document.getElementById('pdf-prev-iframe').src='';
+}
+
+function _buildPDF(data, tipo) {
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait'});
+  doc.setFillColor(13,17,23);doc.rect(0,0,300,35,'F');
+  doc.setFontSize(18);doc.setTextColor(212,168,67);doc.text(data.title,14,18);
+  doc.setFontSize(9);doc.setTextColor(139,148,158);doc.text('Statistiche - '+new Date().toLocaleDateString('it-CH'),14,26);
+  if(tipo==='cliente'&&data.rows.length===1){
+    const r=data.rows[0];
+    doc.setFontSize(11);doc.setTextColor(70,70,70);
+    doc.text(`Visite: ${r.gd}  |  TOT.IN: ${fmt(r.totIn)} CHF  |  BD: ${fmt(r.bd)} CHF  |  G WIN: ${fmt(r.gwin)} CHF  |  BD Media/Visita: ${fmt(r.bd/r.gd)} CHF`,14,44);
+    doc.autoTable({startY:50,head:[['Data GD','Tessera','TOT. IN','BD','G WIN']],
+      body:r.regs.map(x=>[fmtDate(x.data),x.tessera||'',fmt(x.totIn),fmt(x.bd),fmt(x.gwin)]),
+      foot:[['TOTALE','',fmt(r.totIn),fmt(r.bd),fmt(r.gwin)]],
+      theme:'grid',headStyles:{fillColor:[47,84,150],textColor:255,fontSize:9},bodyStyles:{fontSize:8,textColor:[50,50,50]},
+      footStyles:{fillColor:[47,84,150],textColor:255,fontStyle:'bold'},
+      alternateRowStyles:{fillColor:[245,245,245]},
+      didParseCell:function(d){if(d.section==='body'&&d.column.index===4){const v=String(d.cell.raw);if(v.startsWith('-'))d.cell.styles.textColor=[200,50,50];else if(v!=='0')d.cell.styles.textColor=[30,130,30];}}
+    });
+  } else {
+    doc.autoTable({startY:40,head:[['Cliente','Visite','TOT. IN','BD','G WIN','BD Media/Visita']],
+      body:data.rows.map(r=>[r.nome,r.gd,fmt(r.totIn),fmt(r.bd),fmt(r.gwin),fmt(r.bd/r.gd)]),
+      foot:[['TOTALE',data.rows.reduce((s,r)=>s+r.gd,0),fmt(data.rows.reduce((s,r)=>s+r.totIn,0)),fmt(data.rows.reduce((s,r)=>s+r.bd,0)),fmt(data.rows.reduce((s,r)=>s+r.gwin,0)),'']],
+      theme:'grid',headStyles:{fillColor:[47,84,150],textColor:255,fontSize:9},bodyStyles:{fontSize:8,textColor:[50,50,50]},
+      footStyles:{fillColor:[47,84,150],textColor:255,fontStyle:'bold'},
+      alternateRowStyles:{fillColor:[245,245,245]},
+      didParseCell:function(d){if(d.section==='body'&&d.column.index===4){const v=String(d.cell.raw);if(v.startsWith('-'))d.cell.styles.textColor=[200,50,50];else if(v!=='0')d.cell.styles.textColor=[30,130,30];}}
+    });
+  }
+  const pgs=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pgs;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(150);doc.text('Statistiche',14,doc.internal.pageSize.height-8);doc.text(`${i}/${pgs}`,doc.internal.pageSize.width-25,doc.internal.pageSize.height-8);}
+  return doc;
+}
+
+function _buildCSV(data, tipo) {
+  let csv;
+  if(tipo==='cliente'&&data.rows.length===1){
+    csv='Data GD;Tessera;TOT. IN;BD;G WIN\n';
+    data.rows[0].regs.forEach(r=>{csv+=`${fmtDate(r.data)};${r.tessera||''};${r.totIn};${r.bd};${r.gwin}\n`;});
+    const t=data.rows[0];csv+=`TOTALE;;${t.totIn};${t.bd};${t.gwin}\n`;
+  } else {
+    csv='Cliente;Visite;TOT. IN;BD;G WIN;BD Media/Visita\n';
+    data.rows.forEach(r=>{csv+=`${r.nome};${r.gd};${r.totIn};${r.bd};${r.gwin};${Math.round(r.bd/r.gd)}\n`;});
+    csv+=`TOTALE;${data.rows.reduce((s,r)=>s+r.gd,0)};${data.rows.reduce((s,r)=>s+r.totIn,0)};${data.rows.reduce((s,r)=>s+r.bd,0)};${data.rows.reduce((s,r)=>s+r.gwin,0)};\n`;
+  }
+  return csv;
+}
+
+function exportPDF(tipo,cliId){
+  const data=getExpData(tipo,cliId);if(!data)return;
+  const doc = _buildPDF(data, tipo);
+  const fname = data.title.replace(/[^a-zA-Z0-9\s]/g,'')+'.pdf';
+  mostraPdfPreview(doc, fname, data.title);
+}
+
+function exportCSV(tipo,cliId){
+  const data=getExpData(tipo,cliId);if(!data)return;
+  const csv = _buildCSV(data, tipo);
+  const fname = data.title.replace(/[^a-zA-Z0-9\s]/g,'')+'.csv';
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+  toast('CSV scaricato!');
+}
+
+// ======================================================
+// BACKUP / RESTORE
+// ======================================================
+function backupDati(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='statistiche_backup_'+new Date().toISOString().split('T')[0]+'.json';a.click();
+  toast('Backup scaricato!');
+}
+function restoreBackup(file){
+  if(!file)return;
+  if(!confirm('Ripristinare il backup? I dati attuali verranno sostituiti.'))return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.clienti||!d.registrazioni)throw new Error('Formato non valido');
+      DB=d;save();toast('Backup ripristinato!');popFilters();renderDashboard();
+    }catch(err){toast('Errore: '+err.message,'error');}
+  };
+  reader.readAsText(file);
+}
+
+// ======================================================
+// MODAL
+// ======================================================
+function openModal(){document.getElementById('modal-bg').classList.add('show');}
+function closeModal(){document.getElementById('modal-bg').classList.remove('show');}
+document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pdf-preview').style.display==='flex')chiudiPdfPreview();else closeModal();}});
+
+// ======================================================
+// INIT
+// ======================================================
+// Init: wait for login (don't load data yet)
+// Auto-focus login field
+document.getElementById('login-nome').focus();
+</script>
+</body>
+</html>
