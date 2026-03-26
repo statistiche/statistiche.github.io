@@ -420,11 +420,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .menu-toggle { display:block; }
   .content { padding:16px; }
   .topbar { padding:0 16px; padding-left:56px; }
-  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .topbar-search { display:none; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .kpi-value { font-size:20px; }
   .cards-row { grid-template-columns:1fr; }
   .quick-actions { flex-direction:column; }
   .filters-bar { flex-direction:column; align-items:stretch; }
   .filter-sep { display:none; }
+  .chart-box { height:280px !important; }
+  table { font-size:12px; }
+  thead th { font-size:10px; padding:8px 8px; }
+  tbody td { padding:8px 8px; }
+  .btn-sm { padding:4px 6px; font-size:11px; }
+  .modal { width:95%; max-width:95vw; }
+  .form-grid { grid-template-columns:1fr; }
 }
 </style>
 </head>
@@ -432,7 +441,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" style="display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:var(--bg-primary)">
-  <div style="width:360px;padding:40px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg)">
+  <div style="width:360px;max-width:90vw;padding:40px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg)">
     <div style="text-align:center;margin-bottom:32px">
       <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));display:inline-flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin-bottom:16px;box-shadow:0 4px 12px rgba(196,154,60,.3)">&#9824;</div>
       <h1 style="font-size:22px;font-weight:800;color:var(--text-primary)">Statistiche</h1>
@@ -792,8 +801,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 <!-- PDF PREVIEW (fullscreen like Diario) -->
 <div id="pdf-preview" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);flex-direction:column" onclick="if(event.target===this)chiudiPdfPreview()">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0">
-    <span id="pdf-prev-title" style="font-size:16px;font-weight:700"></span>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:8px">
+    <span id="pdf-prev-title" style="font-size:14px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
     <div style="display:flex;gap:10px;align-items:center">
       <button class="btn btn-gold" onclick="scaricaPdfPreview()">SCARICA PDF</button>
       <button class="btn btn-outline" onclick="chiudiPdfPreview()">Chiudi</button>
@@ -912,9 +921,10 @@ function logout() {
   _loggedIn = false;
   _currentUser = null;
   localStorage.removeItem('stat_user');
-  document.getElementById('login-screen').style.display = '';
+  document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-pw').value = '';
+  document.getElementById('login-nome').value = '';
 }
 
 // Utility
@@ -1500,7 +1510,7 @@ function openScheda(id){
         <div style="font-size:24px;font-weight:800;color:var(--text-primary)">${gd} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">${gd===1?'giornata':'giornate'}</span></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px">
       <div style="text-align:center;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
         <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${mediaVisiteMese.toFixed(1)}</div>
         <div style="font-size:10px;color:var(--text-muted);margin-top:2px">visite/mese</div>
