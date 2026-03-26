@@ -1861,13 +1861,17 @@ async function renderImpostazioni(){
   }
 }
 
+let _forceChangePw = false;
 function showForceChangePw(){
+  _forceChangePw = true;
   document.getElementById('m-title').textContent='Benvenuto! Cambia la tua password';
   document.getElementById('m-body').innerHTML=`
-    <p style="color:var(--text-secondary);margin-bottom:20px">Per sicurezza devi impostare una nuova password al primo accesso.</p>
+    <p style="color:var(--text-secondary);margin-bottom:20px">Per sicurezza devi impostare una nuova password al primo accesso. Non puoi saltare questo passaggio.</p>
     <div class="form-group" style="margin-bottom:16px"><label class="form-label">Nuova password</label><input type="password" id="fc-pw" placeholder="Nuova password"></div>
     <div class="form-group"><label class="form-label">Conferma password</label><input type="password" id="fc-pw2" placeholder="Ripeti password"></div>`;
   document.getElementById('m-foot').innerHTML=`<button class="btn btn-gold" onclick="saveForceChangePw()">Salva Password</button>`;
+  // Nascondi X e blocca chiusura
+  document.querySelector('#modal-bg .modal-close').style.display='none';
   openModal();
 }
 async function saveForceChangePw(){
@@ -1880,6 +1884,8 @@ async function saveForceChangePw(){
     if(res.ok){
       _currentUser.must_change_pw=false;
       localStorage.setItem('stat_user',JSON.stringify(_currentUser));
+      _forceChangePw=false;
+      document.querySelector('#modal-bg .modal-close').style.display='';
       toast('Password impostata!');closeModal();
     } else toast(res.msg||'Errore','error');
   }catch(e){toast('Errore: '+e.message,'error');}
@@ -1951,7 +1957,7 @@ async function delOperatore(id,nome){
 // MODAL
 // ======================================================
 function openModal(){document.getElementById('modal-bg').classList.add('show');}
-function closeModal(){document.getElementById('modal-bg').classList.remove('show');}
+function closeModal(){if(_forceChangePw)return;document.getElementById('modal-bg').classList.remove('show');}
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pdf-preview').style.display==='flex')chiudiPdfPreview();else closeModal();}});
 
