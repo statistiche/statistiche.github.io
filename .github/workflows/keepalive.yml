@@ -1,0 +1,18 @@
+name: Keep Supabase Alive
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Ogni giorno alle 06:00 UTC
+  workflow_dispatch:       # Anche manuale
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          curl -s -o /dev/null -w "Status: %{http_code}" \
+            -X POST "${{ secrets.SB_URL }}/rest/v1/rpc/list_clienti" \
+            -H "apikey: ${{ secrets.SB_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SB_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
