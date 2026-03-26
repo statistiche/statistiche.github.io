@@ -925,6 +925,8 @@ function logout() {
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-pw').value = '';
   document.getElementById('login-nome').value = '';
+  // Reset alla dashboard per il prossimo login
+  goPage('dashboard');
 }
 
 // Utility
