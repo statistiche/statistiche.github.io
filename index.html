@@ -785,6 +785,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
       <div class="card-body no-pad"><div class="tbl-wrap" id="imp-operatori"></div></div>
     </div>
   </div>
+  <div class="card" id="card-danger" style="border-color:rgba(192,70,63,.3)">
+    <div class="card-header" style="border-color:rgba(192,70,63,.2)"><h2 style="color:var(--red-light)">&#9888; Zona Pericolosa</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Queste azioni sono irreversibili. I dati eliminati non possono essere recuperati.</p>
+      <div class="btn-group" style="gap:12px">
+        <button class="btn btn-danger" onclick="modalEliminaDati('registrazioni')">Elimina tutte le registrazioni</button>
+        <button class="btn btn-danger" onclick="modalEliminaDati('clienti')">Elimina tutti i clienti e registrazioni</button>
+      </div>
+    </div>
+  </div>
 </div>
 
   </div><!-- /content -->
@@ -1841,8 +1851,10 @@ function restoreBackup(file){
 async function renderImpostazioni(){
   // Mostra/nascondi sezione operatori se admin
   const card=document.getElementById('card-operatori');
+  const dangerCard=document.getElementById('card-danger');
   if(_currentUser?.is_admin){
     card.style.display='';
+    dangerCard.style.display='';
     try{
       const ops=await sbRpc('list_operatori');
       document.getElementById('imp-operatori').innerHTML=ops.length?`<table><thead><tr>
@@ -1858,6 +1870,7 @@ async function renderImpostazioni(){
     }catch(e){document.getElementById('imp-operatori').innerHTML='<p style="padding:16px;color:var(--text-muted)">Errore caricamento</p>';}
   } else {
     card.style.display='none';
+    dangerCard.style.display='none';
   }
 }
 
@@ -1951,6 +1964,36 @@ async function delOperatore(id,nome){
     const res=await sbRpc('delete_operatore',{p_id:id});
     if(res.ok){toast('Operatore eliminato');renderImpostazioni();}
     else toast(res.msg||'Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function modalEliminaDati(tipo){
+  const labels = {
+    registrazioni: 'tutte le registrazioni',
+    clienti: 'tutti i clienti e le registrazioni',
+    tutto: 'TUTTI i dati (clienti, registrazioni e operatori tranne admin)'
+  };
+  document.getElementById('m-title').textContent='Conferma Eliminazione';
+  document.getElementById('m-body').innerHTML=`
+    <p style="color:var(--red-light);font-size:15px;font-weight:600;margin-bottom:16px">Stai per eliminare ${labels[tipo]}.</p>
+    <p style="color:var(--text-secondary);margin-bottom:20px">Questa azione e' irreversibile. Per confermare scrivi <strong style="color:var(--text-primary)">ELIMINA</strong> nel campo qui sotto.</p>
+    <div class="form-group"><input type="text" id="del-confirm" placeholder="Scrivi ELIMINA per confermare" autocomplete="off"></div>`;
+  document.getElementById('m-foot').innerHTML=`
+    <button class="btn btn-outline" onclick="closeModal()">Annulla</button>
+    <button class="btn btn-danger" onclick="eseguiEliminaDati('${tipo}')">Elimina Definitivamente</button>`;
+  openModal();
+}
+async function eseguiEliminaDati(tipo){
+  if(document.getElementById('del-confirm').value.trim().toUpperCase()!=='ELIMINA')return toast('Scrivi ELIMINA per confermare','error');
+  try{
+    const res=await sbRpc('delete_all_data',{p_tipo:tipo});
+    if(res.ok){
+      toast('Dati eliminati!');
+      await loadAllFromSupabase();
+      popFilters();
+      closeModal();
+      renderImpostazioni();
+    } else toast(res.msg||'Errore','error');
   }catch(e){toast('Errore: '+e.message,'error');}
 }
 
