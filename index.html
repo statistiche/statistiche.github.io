@@ -811,13 +811,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 // SUPABASE CONFIG
 // ======================================================
 const SB_URL = 'https://lyutdicncmuqzjslnkka.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5dXRkaWNuY211cXpqc2xua2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTYwMjgsImV4cCI6MjA5MDEzMjAyOH0.IJm1H6KrIYIPdV2GQrZ9LpaUeI8nRAmZEkgLjAKfO0s';
-const SB_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5dXRkaWNuY211cXpqc2xua2thIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDU1NjAyOCwiZXhwIjoyMDkwMTMyMDI4fQ.KN2GPHgK8Rsk7CmYdf0HVbruPTXKYn2rmmUpaLfK-8E';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5dXRkaWNuY211cXpqc2xua2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTYwMjgsImV4cCI6MjA5MDEzMjAyOH0.IJm1H6KrIYIPdV2GQrZ9LpaUeI8nRAmZEkgLjAKfO0s';
 
 async function sbRpc(fn, params={}) {
   const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
     method:'POST',
-    headers:{'apikey':SB_SERVICE,'Authorization':'Bearer '+SB_SERVICE,'Content-Type':'application/json'},
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
     body:JSON.stringify(params)
   });
   if (!res.ok) { const e = await res.text(); throw new Error(e); }
