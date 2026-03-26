@@ -832,7 +832,7 @@ const MESI = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio
 
 let DB = { clienti:[], registrazioni:[] };
 let _loggedIn = false;
-let _currentUser = null;
+let _currentUser = JSON.parse(localStorage.getItem('stat_user')||'null');
 
 function saveCache() { localStorage.setItem(SK, JSON.stringify(DB)); }
 function loadCache() {
@@ -878,12 +878,17 @@ async function doLogin() {
     if (res.ok) {
       _loggedIn = true;
       _currentUser = res;
+      localStorage.setItem('stat_user', JSON.stringify(res));
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = '';
       await loadAllFromSupabase();
       popFilters();
       renderDashboard();
-      toast('Benvenuto, ' + res.nome + '!');
+      if (res.must_change_pw) {
+        showForceChangePw();
+      } else {
+        toast('Benvenuto, ' + res.nome + '!');
+      }
     } else {
       toast('Nome o password errati', 'error');
     }
@@ -907,6 +912,7 @@ async function doLogin() {
 function logout() {
   _loggedIn = false;
   _currentUser = null;
+  localStorage.removeItem('stat_user');
   document.getElementById('login-screen').style.display = '';
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-pw').value = '';
@@ -1834,14 +1840,38 @@ async function renderImpostazioni(){
         <td><strong>${o.nome}</strong></td>
         <td>${o.is_admin?'<span style="color:var(--gold-light)">Admin</span>':'Operatore'}</td>
         <td style="text-align:right;white-space:nowrap">
-          <button class="btn btn-outline btn-sm" onclick="modalResetPw(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Reset password">&#128274;</button>
-          <button class="btn btn-danger btn-sm" onclick="delOperatore(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Elimina">&#10006;</button>
+          ${o.id!==_currentUser?.id?`<button class="btn btn-outline btn-sm" onclick="modalResetPw(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Reset password">&#128274;</button>
+          <button class="btn btn-danger btn-sm" onclick="delOperatore(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Elimina">&#10006;</button>`:'<span style="color:var(--text-muted);font-size:11px">Tu</span>'}
         </td>
       </tr>`).join('')}</tbody></table>`:'';
     }catch(e){document.getElementById('imp-operatori').innerHTML='<p style="padding:16px;color:var(--text-muted)">Errore caricamento</p>';}
   } else {
     card.style.display='none';
   }
+}
+
+function showForceChangePw(){
+  document.getElementById('m-title').textContent='Benvenuto! Cambia la tua password';
+  document.getElementById('m-body').innerHTML=`
+    <p style="color:var(--text-secondary);margin-bottom:20px">Per sicurezza devi impostare una nuova password al primo accesso.</p>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Nuova password</label><input type="password" id="fc-pw" placeholder="Nuova password"></div>
+    <div class="form-group"><label class="form-label">Conferma password</label><input type="password" id="fc-pw2" placeholder="Ripeti password"></div>`;
+  document.getElementById('m-foot').innerHTML=`<button class="btn btn-gold" onclick="saveForceChangePw()">Salva Password</button>`;
+  openModal();
+}
+async function saveForceChangePw(){
+  const pw=document.getElementById('fc-pw').value;
+  const pw2=document.getElementById('fc-pw2').value;
+  if(!pw||pw.length<4)return toast('Password troppo corta (min 4)','error');
+  if(pw!==pw2)return toast('Le password non corrispondono','error');
+  try{
+    const res=await sbRpc('change_password',{p_id:_currentUser.id,p_old_pw:document.getElementById('login-pw').value||pw,p_new_pw:pw});
+    if(res.ok){
+      _currentUser.must_change_pw=false;
+      localStorage.setItem('stat_user',JSON.stringify(_currentUser));
+      toast('Password impostata!');closeModal();
+    } else toast(res.msg||'Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 
 async function cambiaPassword(){
@@ -1917,9 +1947,15 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElem
 // ======================================================
 // INIT
 // ======================================================
-// Init: wait for login (don't load data yet)
-// Auto-focus login field
-document.getElementById('login-nome').focus();
+// Init: auto-login if session exists
+if (_currentUser && _currentUser.ok) {
+  _loggedIn = true;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = '';
+  loadAllFromSupabase().then(() => { popFilters(); renderDashboard(); });
+} else {
+  document.getElementById('login-nome').focus();
+}
 </script>
 </body>
 </html>
