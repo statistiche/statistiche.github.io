@@ -436,7 +436,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     <div style="text-align:center;margin-bottom:32px">
       <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));display:inline-flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin-bottom:16px;box-shadow:0 4px 12px rgba(196,154,60,.3)">&#9824;</div>
       <h1 style="font-size:22px;font-weight:800;color:var(--text-primary)">Statistiche</h1>
-      <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Player Analytics</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Analytics</p>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label class="form-label">Nome</label>
@@ -460,7 +460,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
       <div class="brand-icon">&#9824;</div>
       <div>
         <div class="brand-text"><span>Statistiche</span></div>
-        <div class="brand-sub">Player Analytics</div>
+        <div class="brand-sub">Analytics</div>
       </div>
     </div>
   </div>
@@ -475,6 +475,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     <div class="nav-label">Dati</div>
     <a class="nav-item" data-page="importa"><span class="nav-icon">&#8681;</span>Importa Excel</a>
     <a class="nav-item" data-page="esporta"><span class="nav-icon">&#8682;</span>Esporta PDF/CSV</a>
+    <div class="nav-label">Sistema</div>
+    <a class="nav-item" data-page="impostazioni"><span class="nav-icon">&#9881;</span>Impostazioni</a>
   </nav>
   <div class="sidebar-footer">
     <span>v2.0</span>
@@ -745,6 +747,37 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   </div>
 </div>
 
+<!-- ==================== IMPOSTAZIONI ==================== -->
+<div class="page" id="pg-impostazioni">
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-header"><h2>&#128274; Cambia Password</h2></div>
+      <div class="card-body">
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Password attuale</label>
+          <input type="password" id="imp-pw-old" placeholder="Password attuale">
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Nuova password</label>
+          <input type="password" id="imp-pw-new" placeholder="Nuova password">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+          <label class="form-label">Conferma nuova password</label>
+          <input type="password" id="imp-pw-confirm" placeholder="Ripeti nuova password">
+        </div>
+        <button class="btn btn-gold" onclick="cambiaPassword()">Salva Password</button>
+      </div>
+    </div>
+    <div class="card" id="card-operatori">
+      <div class="card-header">
+        <h2>&#128101; Operatori</h2>
+        <button class="btn btn-gold btn-sm" onclick="modalNuovoOperatore()">&#10010; Nuovo</button>
+      </div>
+      <div class="card-body no-pad"><div class="tbl-wrap" id="imp-operatori"></div></div>
+    </div>
+  </div>
+</div>
+
   </div><!-- /content -->
 </main>
 
@@ -907,7 +940,7 @@ function toast(msg, type='success') {
 // ======================================================
 // NAVIGATION
 // ======================================================
-const pageTitles = { dashboard:'Dashboard', inserimento:'Inserimento', registrazioni:'Registrazioni', clienti:'Clienti', statistiche:'Statistiche', importa:'Importa Excel', esporta:'Esporta PDF/CSV' };
+const pageTitles = { dashboard:'Dashboard', inserimento:'Inserimento', registrazioni:'Registrazioni', clienti:'Clienti', statistiche:'Statistiche', importa:'Importa Excel', esporta:'Esporta PDF/CSV', impostazioni:'Impostazioni' };
 
 document.querySelectorAll('.nav-item').forEach(a => {
   a.addEventListener('click', () => goPage(a.dataset.page));
@@ -926,6 +959,7 @@ function goPage(pg) {
   else if(pg==='registrazioni') { initRegFilters(); renderRegs(); }
   else if(pg==='clienti') renderClienti();
   else if(pg==='statistiche') renderStats();
+  else if(pg==='impostazioni') renderImpostazioni();
 }
 
 // ======================================================
@@ -1784,6 +1818,95 @@ function restoreBackup(file){
 }
 
 // ======================================================
+// ======================================================
+// IMPOSTAZIONI
+// ======================================================
+async function renderImpostazioni(){
+  // Mostra/nascondi sezione operatori se admin
+  const card=document.getElementById('card-operatori');
+  if(_currentUser?.is_admin){
+    card.style.display='';
+    try{
+      const ops=await sbRpc('list_operatori');
+      document.getElementById('imp-operatori').innerHTML=ops.length?`<table><thead><tr>
+        <th>Nome</th><th>Ruolo</th><th style="text-align:right">Azioni</th>
+      </tr></thead><tbody>${ops.map(o=>`<tr>
+        <td><strong>${o.nome}</strong></td>
+        <td>${o.is_admin?'<span style="color:var(--gold-light)">Admin</span>':'Operatore'}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="modalResetPw(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Reset password">&#128274;</button>
+          <button class="btn btn-danger btn-sm" onclick="delOperatore(${o.id},'${o.nome.replace(/'/g,"\\'")}')" title="Elimina">&#10006;</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`:'';
+    }catch(e){document.getElementById('imp-operatori').innerHTML='<p style="padding:16px;color:var(--text-muted)">Errore caricamento</p>';}
+  } else {
+    card.style.display='none';
+  }
+}
+
+async function cambiaPassword(){
+  const old=document.getElementById('imp-pw-old').value;
+  const nw=document.getElementById('imp-pw-new').value;
+  const conf=document.getElementById('imp-pw-confirm').value;
+  if(!old||!nw)return toast('Compila tutti i campi','error');
+  if(nw!==conf)return toast('Le password non corrispondono','error');
+  if(nw.length<4)return toast('Password troppo corta (min 4 caratteri)','error');
+  try{
+    const res=await sbRpc('change_password',{p_id:_currentUser.id,p_old_pw:old,p_new_pw:nw});
+    if(res.ok){toast('Password cambiata!');document.getElementById('imp-pw-old').value='';document.getElementById('imp-pw-new').value='';document.getElementById('imp-pw-confirm').value='';}
+    else toast(res.msg||'Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function modalNuovoOperatore(){
+  document.getElementById('m-title').textContent='Nuovo Operatore';
+  document.getElementById('m-body').innerHTML=`
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Nome</label><input type="text" id="mo-nome" placeholder="Nome operatore"></div>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Password</label><input type="password" id="mo-pw" placeholder="Password"></div>
+    <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="mo-admin" style="width:auto"> Admin</label></div>`;
+  document.getElementById('m-foot').innerHTML=`<button class="btn btn-outline" onclick="closeModal()">Annulla</button><button class="btn btn-gold" onclick="saveNuovoOperatore()">Crea</button>`;
+  openModal();
+}
+
+async function saveNuovoOperatore(){
+  const nome=document.getElementById('mo-nome').value.trim();
+  const pw=document.getElementById('mo-pw').value;
+  const admin=document.getElementById('mo-admin').checked;
+  if(!nome||!pw)return toast('Compila tutti i campi','error');
+  try{
+    const res=await sbRpc('create_operatore',{p_nome:nome,p_password:pw,p_is_admin:admin});
+    if(res.ok){toast('Operatore creato: '+nome);closeModal();renderImpostazioni();}
+    else toast('Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function modalResetPw(id,nome){
+  document.getElementById('m-title').textContent='Reset Password - '+nome;
+  document.getElementById('m-body').innerHTML=`
+    <div class="form-group"><label class="form-label">Nuova password</label><input type="password" id="mr-pw" placeholder="Nuova password"></div>`;
+  document.getElementById('m-foot').innerHTML=`<button class="btn btn-outline" onclick="closeModal()">Annulla</button><button class="btn btn-gold" onclick="saveResetPw(${id})">Salva</button>`;
+  openModal();
+}
+
+async function saveResetPw(id){
+  const pw=document.getElementById('mr-pw').value;
+  if(!pw)return toast('Inserisci la password','error');
+  try{
+    const res=await sbRpc('reset_password',{p_id:id,p_new_pw:pw});
+    if(res.ok){toast('Password resettata!');closeModal();}
+    else toast('Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+async function delOperatore(id,nome){
+  if(!confirm('Eliminare l\'operatore '+nome+'?'))return;
+  try{
+    const res=await sbRpc('delete_operatore',{p_id:id});
+    if(res.ok){toast('Operatore eliminato');renderImpostazioni();}
+    else toast(res.msg||'Errore','error');
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
 // MODAL
 // ======================================================
 function openModal(){document.getElementById('modal-bg').classList.add('show');}
