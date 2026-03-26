@@ -850,7 +850,7 @@ const MESI = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio
 
 let DB = { clienti:[], registrazioni:[] };
 let _loggedIn = false;
-let _currentUser = JSON.parse(localStorage.getItem('stat_user')||'null');
+let _currentUser = JSON.parse(sessionStorage.getItem('stat_user')||'null');
 
 function saveCache() { localStorage.setItem(SK, JSON.stringify(DB)); }
 function loadCache() {
@@ -896,7 +896,7 @@ async function doLogin() {
     if (res.ok) {
       _loggedIn = true;
       _currentUser = res;
-      localStorage.setItem('stat_user', JSON.stringify(res));
+      sessionStorage.setItem('stat_user', JSON.stringify(res));
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = '';
       await loadAllFromSupabase();
@@ -930,7 +930,7 @@ async function doLogin() {
 function logout() {
   _loggedIn = false;
   _currentUser = null;
-  localStorage.removeItem('stat_user');
+  sessionStorage.removeItem('stat_user');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-pw').value = '';
@@ -1895,7 +1895,7 @@ async function saveForceChangePw(){
     const res=await sbRpc('change_password',{p_id:_currentUser.id,p_old_pw:document.getElementById('login-pw').value||pw,p_new_pw:pw});
     if(res.ok){
       _currentUser.must_change_pw=false;
-      localStorage.setItem('stat_user',JSON.stringify(_currentUser));
+      sessionStorage.setItem('stat_user',JSON.stringify(_currentUser));
       _forceChangePw=false;
       document.querySelector('#modal-bg .modal-close').style.display='';
       toast('Password impostata!');closeModal();
