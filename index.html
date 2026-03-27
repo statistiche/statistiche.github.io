@@ -456,6 +456,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
       <input type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-gold" id="login-btn" onclick="doLogin()" style="width:100%;justify-content:center;padding:12px">Accedi</button>
+    <p id="login-error" style="display:none;color:var(--red-light);font-size:13px;text-align:center;margin-top:12px"></p>
   </div>
 </div>
 
@@ -889,6 +890,7 @@ async function doLogin() {
   const nome = document.getElementById('login-nome').value.trim();
   const pw = document.getElementById('login-pw').value;
   if (!nome || !pw) return toast('Inserisci nome e password', 'error');
+  document.getElementById('login-error').style.display='none';
   document.getElementById('login-btn').disabled = true;
   document.getElementById('login-btn').textContent = 'Accesso...';
   try {
@@ -908,7 +910,9 @@ async function doLogin() {
         toast('Benvenuto, ' + res.nome + '!');
       }
     } else {
-      toast('Nome o password errati', 'error');
+      const errEl=document.getElementById('login-error');
+      errEl.textContent='Nome o password errati';
+      errEl.style.display='';
     }
   } catch(e) {
     // Offline fallback
