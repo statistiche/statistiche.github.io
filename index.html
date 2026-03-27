@@ -417,7 +417,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .sidebar { transform:translateX(-100%); width:280px; }
   .sidebar.open { transform:translateX(0); }
   .main { margin-left:0; }
-  .menu-toggle { display:block; transition:left .3s cubic-bezier(.4,0,.2,1); }
+  .menu-toggle { display:block; }
+  .sidebar-close { display:block !important; }
   .content { padding:12px; }
   .topbar { padding:0 12px; padding-left:56px; }
   .topbar-search { display:none; }
@@ -464,10 +465,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 <!-- APP (hidden until login) -->
 <div id="app-screen" style="display:none">
-<button class="menu-toggle" onclick="const sb=document.querySelector('.sidebar');sb.classList.toggle('open');this.style.left=sb.classList.contains('open')?'290px':'10px'">&#9776;</button>
+<button class="menu-toggle" id="menu-open-btn" onclick="document.querySelector('.sidebar').classList.add('open');this.style.display='none'">&#9776;</button>
 
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-header">
+  <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between">
     <div class="sidebar-brand">
       <div class="brand-icon"><svg width="32" height="32" viewBox="2 2 28 28"><path d="M16 4c-3 4-10 8-10 14a6 6 0 0010 1l-2 5h-2v2h8v-2h-2l-2-5a6 6 0 0010-1c0-6-7-10-10-14z" fill="white"/></svg></div>
       <div>
@@ -475,6 +476,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         <div class="brand-sub">Analytics</div>
       </div>
     </div>
+    <button class="sidebar-close" onclick="document.querySelector('.sidebar').classList.remove('open');document.getElementById('menu-open-btn').style.display=''" style="display:none;background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:4px 8px">&times;</button>
   </div>
   <nav>
     <div class="nav-label">Principale</div>
@@ -989,6 +991,7 @@ function goPage(pg) {
   document.getElementById('pg-'+pg).classList.add('active');
   document.getElementById('topbar-title').textContent = pageTitles[pg]||'';
   document.getElementById('sidebar').classList.remove('open');
+  const mob=document.getElementById('menu-open-btn');if(mob)mob.style.display='';
   popFilters();
   if(pg==='dashboard') renderDashboard();
   else if(pg==='inserimento') renderIns();
