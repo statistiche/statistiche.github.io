@@ -416,6 +416,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 @media(max-width:900px) {
   .sidebar { transform:translateX(-100%); width:280px; }
   .sidebar.open { transform:translateX(0); }
+  .sidebar.open ~ .sidebar-overlay { display:block; }
+  .sidebar-overlay { display:none; position:fixed; inset:0; background:transparent; z-index:99; }
   .main { margin-left:0; }
   .menu-toggle { display:block; }
   .sidebar-close { display:block !important; }
@@ -502,8 +504,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 <!-- APP (hidden until login) -->
 <div id="app-screen" style="display:none">
-<button class="menu-toggle" id="menu-open-btn" onclick="document.querySelector('.sidebar').classList.add('open');this.style.display='none'">&#9776;</button>
+<button class="menu-toggle" id="menu-open-btn" onclick="openSidebar()">&#9776;</button>
 
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between">
     <div class="sidebar-brand">
@@ -513,7 +516,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         <div class="brand-sub">Analytics</div>
       </div>
     </div>
-    <button class="sidebar-close" onclick="document.querySelector('.sidebar').classList.remove('open');document.getElementById('menu-open-btn').style.display=''" style="display:none;background:none;border:none;color:var(--text-secondary);font-size:32px;cursor:pointer;padding:4px 12px;line-height:1">&times;</button>
+    <button class="sidebar-close" onclick="closeSidebar()" style="display:none;background:none;border:none;color:var(--text-secondary);font-size:32px;cursor:pointer;padding:4px 12px;line-height:1">&times;</button>
   </div>
   <nav>
     <div class="nav-label">Principale</div>
@@ -1017,6 +1020,9 @@ function toast(msg, type='success') {
 // ======================================================
 const pageTitles = { dashboard:'Dashboard', inserimento:'Inserimento', registrazioni:'Registrazioni', clienti:'Clienti', statistiche:'Statistiche', importa:'Importa Excel', esporta:'Esporta PDF/CSV', impostazioni:'Impostazioni' };
 
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('menu-open-btn').style.display='none';}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');const b=document.getElementById('menu-open-btn');if(b)b.style.display='';}
+
 document.querySelectorAll('.nav-item').forEach(a => {
   a.addEventListener('click', () => goPage(a.dataset.page));
 });
@@ -1027,8 +1033,7 @@ function goPage(pg) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('pg-'+pg).classList.add('active');
   document.getElementById('topbar-title').textContent = pageTitles[pg]||'';
-  document.getElementById('sidebar').classList.remove('open');
-  const mob=document.getElementById('menu-open-btn');if(mob)mob.style.display='';
+  closeSidebar();
   popFilters();
   if(pg==='dashboard') renderDashboard();
   else if(pg==='inserimento') renderIns();
