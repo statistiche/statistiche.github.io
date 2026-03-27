@@ -889,7 +889,10 @@ async function loadAllFromSupabase() {
 async function doLogin() {
   const nome = document.getElementById('login-nome').value.trim();
   const pw = document.getElementById('login-pw').value;
-  if (!nome || !pw) return toast('Inserisci nome e password', 'error');
+  const errEl=document.getElementById('login-error');
+  if (!nome && !pw) { errEl.textContent='Inserisci nome e password'; errEl.style.display=''; return; }
+  if (!nome) { errEl.textContent='Inserisci il nome'; errEl.style.display=''; return; }
+  if (!pw) { errEl.textContent='Inserisci la password'; errEl.style.display=''; return; }
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-btn').disabled = true;
   document.getElementById('login-btn').textContent = 'Accesso...';
