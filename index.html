@@ -416,8 +416,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 @media(max-width:900px) {
   .sidebar { transform:translateX(-100%); width:280px; }
   .sidebar.open { transform:translateX(0); }
-  .sidebar.open ~ .sidebar-overlay { display:block; }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:transparent; z-index:99; }
+  .sidebar-overlay.show { display:block; }
   .main { margin-left:0; }
   .menu-toggle { display:block; }
   .sidebar-close { display:block !important; }
@@ -506,7 +506,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 <div id="app-screen" style="display:none">
 <button class="menu-toggle" id="menu-open-btn" onclick="openSidebar()">&#9776;</button>
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()" ontouchstart="event.preventDefault();closeSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between">
     <div class="sidebar-brand">
@@ -1020,8 +1020,8 @@ function toast(msg, type='success') {
 // ======================================================
 const pageTitles = { dashboard:'Dashboard', inserimento:'Inserimento', registrazioni:'Registrazioni', clienti:'Clienti', statistiche:'Statistiche', importa:'Importa Excel', esporta:'Esporta PDF/CSV', impostazioni:'Impostazioni' };
 
-function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('menu-open-btn').style.display='none';}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');const b=document.getElementById('menu-open-btn');if(b)b.style.display='';}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('menu-open-btn').style.display='none';document.getElementById('sidebar-overlay').classList.add('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');const b=document.getElementById('menu-open-btn');if(b)b.style.display='';document.getElementById('sidebar-overlay').classList.remove('show');}
 
 document.querySelectorAll('.nav-item').forEach(a => {
   a.addEventListener('click', () => goPage(a.dataset.page));
