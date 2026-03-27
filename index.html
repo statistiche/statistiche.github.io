@@ -417,9 +417,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .sidebar { transform:translateX(-100%); width:280px; }
   .sidebar.open { transform:translateX(0); }
   .main { margin-left:0; }
-  .menu-toggle { display:block; }
-  .content { padding:16px; }
-  .topbar { padding:0 16px; padding-left:56px; }
+  .menu-toggle { display:block; transition:left .3s cubic-bezier(.4,0,.2,1); }
+  .content { padding:12px; }
+  .topbar { padding:0 12px; padding-left:56px; }
   .topbar-search { display:none; }
   .kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
   .kpi-value { font-size:20px; }
@@ -428,12 +428,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .filters-bar { flex-direction:column; align-items:stretch; }
   .filter-sep { display:none; }
   .chart-box { height:280px !important; }
-  table { font-size:12px; }
-  thead th { font-size:10px; padding:8px 8px; }
-  tbody td { padding:8px 8px; }
+  table { font-size:11.5px; table-layout:auto !important; }
+  thead th { font-size:10px; padding:6px 6px; white-space:nowrap; }
+  tbody td { padding:6px 6px; }
   .btn-sm { padding:4px 6px; font-size:11px; }
   .modal { width:95%; max-width:95vw; }
   .form-grid { grid-template-columns:1fr; }
+  .badge-gd { font-size:10px; padding:0 6px; min-width:auto; }
+  .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 }
 </style>
 </head>
@@ -462,7 +464,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 <!-- APP (hidden until login) -->
 <div id="app-screen" style="display:none">
-<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+<button class="menu-toggle" onclick="const sb=document.querySelector('.sidebar');sb.classList.toggle('open');this.style.left=sb.classList.contains('open')?'290px':'10px'">&#9776;</button>
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
@@ -1407,9 +1409,9 @@ function renderClienti(){
     return cd==='asc'?(a[ck]||0)-(b[ck]||0):(b[ck]||0)-(a[ck]||0);
   });
   document.getElementById('cli-count').textContent=`${DB.clienti.length} Clienti`;
-  const cliCols=[{k:'nome',l:'Nome',w:'30%',al:'left'},{k:'gd',l:'Visite',w:'12%',al:'center'},{k:'totIn',l:'TOT. IN',w:'14%',al:'right'},{k:'bd',l:'BD',w:'14%',al:'right'},{k:'gwin',l:'G WIN',w:'14%',al:'right'}];
-  document.getElementById('cli-table').innerHTML=lista.length?`<table style="table-layout:fixed;width:100%"><thead><tr>
-    ${cliCols.map(c=>`<th style="width:${c.w};text-align:${c.al}" class="${cliSort.key===c.k?'sort-'+cliSort.dir:''}" onclick="cliSortFn('${c.k}')">${c.l}</th>`).join('')}<th style="width:16%;text-align:right">Azioni</th>
+  const cliCols=[{k:'nome',l:'Nome',al:'left'},{k:'gd',l:'Visite',al:'center'},{k:'totIn',l:'TOT. IN',al:'right'},{k:'bd',l:'BD',al:'right'},{k:'gwin',l:'G WIN',al:'right'}];
+  document.getElementById('cli-table').innerHTML=lista.length?`<table><thead><tr>
+    ${cliCols.map(c=>`<th style="text-align:${c.al}" class="${cliSort.key===c.k?'sort-'+cliSort.dir:''}" onclick="cliSortFn('${c.k}')">${c.l}</th>`).join('')}<th style="text-align:right">Azioni</th>
   </tr></thead><tbody>${lista.map(c=>{
     return`<tr class="clickable" onclick="openScheda(${c.id})">
       <td><strong class="text-gold">${c.nome}</strong>${(c.tessere||[]).length?'<div style="font-size:10px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis">'+c.tessere[0]+(c.tessere.length>1?' +'+(c.tessere.length-1):'')+'</div>':''}</td>
