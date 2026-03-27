@@ -1224,8 +1224,8 @@ function renderDashboard() {
     <th style="width:40px">#</th>${clsCols.map(c=>`<th class="${clsSort.key===c.k?'sort-'+clsSort.dir:''}" onclick="clsSortFn('${c.k}')" style="cursor:pointer">${c.l}</th>`).join('')}
   </tr></thead><tbody>${cls.map((c,i)=>`<tr class="clickable" onclick="openScheda(${c.id})">
     <td class="text-muted">${i+1}</td><td><strong>${c.nome}</strong></td>
-    <td><span class="badge-gd">${c.gd} ${c.gd===1?'visita':'visite'}</span></td>
-    <td>${fmt(c.totIn)}</td><td>${fmt(c.bd)}</td>
+    <td style="text-align:center"><span class="badge-gd">${c.gd}</span></td>
+    <td style="text-align:right">${fmt(c.totIn)}</td><td style="text-align:right">${fmt(c.bd)}</td>
     <td class="${c.gwin>=0?'text-pos':'text-neg'}">${fmt(c.gwin)}</td>
     <td class="text-secondary">${fmt(c.bdMedia)}</td>
   </tr>`).join('')}</tbody></table>`;
@@ -1671,8 +1671,8 @@ function renderStats(){
   document.getElementById('stat-table').innerHTML=`<table><thead><tr>
     ${stCols.map(c=>`<th class="${statSort.key===c.k?'sort-'+statSort.dir:''}" onclick="statSortFn('${c.k}')" style="cursor:pointer">${c.l}</th>`).join('')}
   </tr></thead><tbody>${rows.map(r=>`<tr class="clickable" onclick="openScheda(${r.id})">
-    <td><strong>${r.nome}</strong></td><td><span class="badge-gd">${r.gd} ${r.gd===1?'visita':'visite'}</span></td>
-    <td>${fmt(r.totIn)}</td><td>${fmt(r.bd)}</td>
+    <td><strong>${r.nome}</strong></td><td style="text-align:center"><span class="badge-gd">${r.gd}</span></td>
+    <td style="text-align:right">${fmt(r.totIn)}</td><td style="text-align:right">${fmt(r.bd)}</td>
     <td class="${r.gwin>=0?'text-pos':'text-neg'}">${fmt(r.gwin)}</td>
     <td class="text-secondary">${fmt(r.bdMedia)}</td>
   </tr>`).join('')}</tbody></table>`;
