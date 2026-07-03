@@ -1813,7 +1813,7 @@ async function confermaImport(){
   const bulkData=impBuf.regs.map(r=>({
     nome: override || (r.nome||''),
     tessere: override ? [] : [...((impBuf.clienti && impBuf.clienti[r.nome] && impBuf.clienti[r.nome].tessere) || [])],
-    data:r.data, tessera: override ? '' : (r.tessera||''), tot_in:r.totIn, bd:r.bd, gwin:r.gwin
+    data:r.data, tessera: (r.tessera||''), tot_in:r.totIn, bd:r.bd, gwin:r.gwin
   })).filter(x=>x.nome);
   if(!bulkData.length){ toast('Nessun cliente: seleziona un cliente dal menu, oppure usa un file che contiene i nomi','error'); return; }
   const log=document.getElementById('import-log');log.style.display='';log.innerHTML='<div class="log-ok">Invio dati al server...</div>';
