@@ -1,18 +1,35 @@
 name: Keep Supabase Alive
 on:
   schedule:
-    - cron: '0 6 * * *'  # Ogni giorno alle 06:00 UTC
-  workflow_dispatch:       # Anche manuale
+    - cron: '0 6 * * *'   # Ogni giorno alle 06:00 UTC (ping Supabase, evita la pausa dopo 7gg)
+    - cron: '0 6 * * 1'   # Ogni lunedi': commit "attivita'" per non far disabilitare il workflow (GitHub disabilita dopo 60gg di inattivita' del repo)
+  workflow_dispatch:        # Anche manuale
+
+permissions:
+  contents: write
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ping Supabase (tiene sveglio il DB free)
         run: |
-          curl -s -o /dev/null -w "Status: %{http_code}" \
+          curl -s -o /dev/null -w "Status: %{http_code}\n" \
             -X POST "${{ secrets.SB_URL }}/rest/v1/rpc/list_clienti" \
             -H "apikey: ${{ secrets.SB_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SB_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}'
+
+      - name: Commit di attivita' settimanale (evita il disabled_inactivity)
+        if: github.event.schedule == '0 6 * * 1' || github.event_name == 'workflow_dispatch'
+        run: |
+          date -u '+%Y-%m-%d %H:%M UTC' > .keepalive
+          git config user.name "keepalive-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .keepalive
+          git commit -m "chore: keepalive activity $(date -u +%F)" || echo "nessuna modifica"
+          git push || echo "push non necessario"
