@@ -1691,10 +1691,89 @@ function handleDrop(e){e.preventDefault();e.target.closest('.drop-zone').classLi
 function handleFile(file){
   if(!file)return;
   const reader=new FileReader();
-  reader.onload=function(e){try{parseXL(XLSX.read(e.target.result,{type:'array'}),file.name);}catch(err){toast('Errore: '+err.message,'error');}};
+  reader.onload=function(e){try{parseXL(XLSX.read(e.target.result,{type:'array',cellDates:true}),file.name);}catch(err){toast('Errore: '+err.message,'error');}};
   reader.readAsArrayBuffer(file);
 }
+// ====== Import formato "ACCOGLIENZA" (fogli-mese, colonne GD/CARD NR/TI/GWIN/BD, carte anonime -> cliente scelto a mano) ======
+function cleanNumEU(v){
+  if(v===null||v===undefined) return 0;
+  if(typeof v==='number') return v;
+  let s=String(v).trim(); if(!s) return 0;
+  const neg = s.indexOf('-')>=0;
+  let t=s.replace(/[^0-9.,']/g,'').replace(/'/g,'').replace(/^\.+/,'');
+  if(t.indexOf(',')>=0){ t=t.replace(/\./g,'').replace(',','.'); }
+  else if(t.indexOf('.')>=0){ const p=t.split('.'); if(p[p.length-1].length===3) t=p.join(''); }
+  let val=parseFloat(t); if(isNaN(val)) val=0;
+  return neg? -Math.abs(val): val;
+}
+function toISODateXL(v){
+  if(v===null||v===undefined||v==='') return null;
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*86400000)); return isNaN(d)?null:d.toISOString().slice(0,10); }
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); if(m){ let a=m[3]; if(a.length===2)a='20'+a; return a+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  const d=new Date(s); return isNaN(d)?null:d.toISOString().slice(0,10);
+}
+function isAccoglienza(wb){
+  return wb.SheetNames.some(sn=>{
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
+    for(let i=0;i<Math.min(5,data.length);i++){
+      const r=(data[i]||[]).map(x=>String(x==null?'':x).toUpperCase().trim());
+      if(r.some(x=>x.indexOf('CARD')>=0) && r.some(x=>x==='GD')) return true;
+    }
+    return false;
+  });
+}
+function parseAccoglienza(wb,fname){
+  impBuf={fname,mode:'accoglienza',regs:[],months:new Set(),total:0};
+  wb.SheetNames.forEach(sn=>{
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
+    let hdr=-1,cGD=0,cCARD=1,cTI=2,cGW=3,cBD=4;
+    for(let i=0;i<Math.min(5,data.length);i++){
+      const r=(data[i]||[]).map(x=>String(x==null?'':x).toUpperCase().trim());
+      if(r.some(x=>x.indexOf('CARD')>=0) && r.some(x=>x==='GD')){
+        hdr=i;
+        r.forEach((x,idx)=>{ if(x==='GD')cGD=idx; else if(x.indexOf('CARD')>=0)cCARD=idx; else if(x==='TI')cTI=idx; else if(x==='GWIN'||x==='GW')cGW=idx; else if(x==='BD')cBD=idx; });
+        break;
+      }
+    }
+    if(hdr<0) return;
+    for(let i=hdr+1;i<data.length;i++){
+      const row=data[i]; if(!row) continue;
+      const dataISO=toISODateXL(row[cGD]); if(!dataISO) continue;
+      const ti=cleanNumEU(row[cTI]), gw=cleanNumEU(row[cGW]), bd=cleanNumEU(row[cBD]);
+      if(!ti&&!gw&&!bd) continue;
+      const card=row[cCARD]!=null?String(row[cCARD]).replace(/\D/g,''):'';
+      impBuf.regs.push({data:dataISO,totIn:ti,gwin:gw,bd:bd,tessera:card});
+      impBuf.months.add(dataISO.slice(0,7));
+      impBuf.total+=ti;
+    }
+  });
+}
+function clientSelectorHTML(){
+  const opts=DB.clienti.slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome))).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  return `<div style="grid-column:1/-1;margin-bottom:6px">
+       <label style="display:block;color:var(--gold-light);font-size:13px;margin-bottom:6px">Assegna tutti i dati a un cliente <span style="opacity:.6;font-weight:normal">(opzionale)</span></label>
+       <select id="imp-cliente" onchange="document.getElementById('imp-cliente-new').style.display=(this.value==='__new__'?'':'none')" style="width:100%;max-width:380px;padding:10px;border-radius:8px;background:rgba(255,255,255,.06);color:inherit;border:1px solid rgba(255,255,255,.15)">
+         <option value="">— Usa i nomi nel file —</option>${opts}<option value="__new__">➕ Nuovo cliente…</option>
+       </select>
+       <input id="imp-cliente-new" placeholder="Nome nuovo cliente" style="display:none;margin-top:8px;width:100%;max-width:380px;padding:10px;border-radius:8px;background:rgba(255,255,255,.06);color:inherit;border:1px solid rgba(255,255,255,.15)">
+       <div style="font-size:12px;opacity:.65;margin-top:6px;max-width:380px">Se non selezioni, ogni riga usa il nome trovato nel file (formato classico). Per file con sole tessere anonime, seleziona un cliente.</div>
+     </div>`;
+}
+function renderAccoglienzaPreview(){
+  document.getElementById('import-fname').textContent=impBuf.fname+'  ·  formato Accoglienza';
+  document.getElementById('import-kpi').innerHTML=
+    clientSelectorHTML()+
+    `<div class="kpi-card gold"><div class="kpi-label">Registrazioni</div><div class="kpi-value">${impBuf.regs.length}</div></div>
+     <div class="kpi-card blue"><div class="kpi-label">Mesi</div><div class="kpi-value">${impBuf.months.size}</div></div>
+     <div class="kpi-card purple"><div class="kpi-label">Giocato totale</div><div class="kpi-value">${impBuf.total.toLocaleString('it-CH',{maximumFractionDigits:0})}</div></div>`;
+  document.getElementById('import-preview').style.display='';
+  document.getElementById('import-log').style.display='none';
+}
 function parseXL(wb,fname){
+  if(isAccoglienza(wb)){ parseAccoglienza(wb,fname); renderAccoglienzaPreview(); return; }
   impBuf={fname,clienti:{},regs:[],nNew:0};
   wb.SheetNames.forEach(sn=>{
     const m=sn.match(/^(\d{2})\.(\d{2})\.(\d{2,4})$/);if(!m)return;
@@ -1717,7 +1796,7 @@ function parseXL(wb,fname){
   });
   Object.keys(impBuf.clienti).forEach(n=>{if(!cliByName(n))impBuf.nNew++;});
   document.getElementById('import-fname').textContent=fname;
-  document.getElementById('import-kpi').innerHTML=`
+  document.getElementById('import-kpi').innerHTML=clientSelectorHTML()+`
     <div class="kpi-card gold"><div class="kpi-label">Clienti trovati</div><div class="kpi-value">${Object.keys(impBuf.clienti).length}</div><div class="kpi-sub">${impBuf.nNew} nuovi</div></div>
     <div class="kpi-card blue"><div class="kpi-label">Registrazioni</div><div class="kpi-value">${impBuf.regs.length}</div></div>
     <div class="kpi-card purple"><div class="kpi-label">Fogli/Giorni</div><div class="kpi-value">${wb.SheetNames.length}</div></div>`;
@@ -1726,13 +1805,19 @@ function parseXL(wb,fname){
 }
 async function confermaImport(){
   if(!impBuf)return;
+  // Cliente scelto dal menu (opzionale). Se selezionato -> tutti i dati a lui. Se vuoto -> usa i nomi trovati nel file.
+  const sel=document.getElementById('imp-cliente');
+  let override='';
+  if(sel && sel.value==='__new__'){ override=(document.getElementById('imp-cliente-new').value||'').trim().toUpperCase(); if(!override){ toast('Scrivi il nome del nuovo cliente','error'); return; } }
+  else if(sel && sel.value){ const c=DB.clienti.find(x=>String(x.id)===sel.value); override=c?String(c.nome).toUpperCase():''; }
+  const bulkData=impBuf.regs.map(r=>({
+    nome: override || (r.nome||''),
+    tessere: override ? [] : [...((impBuf.clienti && impBuf.clienti[r.nome] && impBuf.clienti[r.nome].tessere) || [])],
+    data:r.data, tessera: override ? '' : (r.tessera||''), tot_in:r.totIn, bd:r.bd, gwin:r.gwin
+  })).filter(x=>x.nome);
+  if(!bulkData.length){ toast('Nessun cliente: seleziona un cliente dal menu, oppure usa un file che contiene i nomi','error'); return; }
   const log=document.getElementById('import-log');log.style.display='';log.innerHTML='<div class="log-ok">Invio dati al server...</div>';
   try{
-    // Build bulk data array
-    const bulkData=impBuf.regs.map(r=>({
-      nome:r.nome, tessere:[...(impBuf.clienti[r.nome]?.tessere||[])],
-      data:r.data, tessera:r.tessera, tot_in:r.totIn, bd:r.bd, gwin:r.gwin
-    }));
     const res=await sbRpc('bulk_import',{p_data:bulkData});
     log.innerHTML=`<div class="log-ok"><strong>Importazione completata!</strong></div>`;
     log.innerHTML+=`<div class="log-ok">Clienti aggiunti: ${res.clienti_aggiunti}</div>`;
