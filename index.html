@@ -1726,7 +1726,8 @@ function isAccoglienza(wb){
   });
 }
 function parseAccoglienza(wb,fname){
-  impBuf={fname,mode:'accoglienza',regs:[],months:new Set(),total:0};
+  impBuf={fname,mode:'accoglienza',regs:[],months:new Set(),total:0,warnings:[]};
+  const weird=(v)=>{ if(v==null||typeof v==='number')return false; const s=String(v); return s.indexOf(',')<0 && (s.match(/\./g)||[]).length>=2; };
   wb.SheetNames.forEach(sn=>{
     const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
     let hdr=-1,cGD=0,cCARD=1,cTI=2,cGW=3,cBD=4;
@@ -1744,6 +1745,9 @@ function parseAccoglienza(wb,fname){
       const dataISO=toISODateXL(row[cGD]); if(!dataISO) continue;
       const ti=cleanNumEU(row[cTI]), gw=cleanNumEU(row[cGW]), bd=cleanNumEU(row[cBD]);
       if(!ti&&!gw&&!bd) continue;
+      if(weird(row[cTI]))impBuf.warnings.push(dataISO+' · TI='+ti.toLocaleString('it-CH'));
+      if(weird(row[cGW]))impBuf.warnings.push(dataISO+' · GWin='+gw.toLocaleString('it-CH'));
+      if(weird(row[cBD]))impBuf.warnings.push(dataISO+' · BD='+bd.toLocaleString('it-CH'));
       const card=row[cCARD]!=null?String(row[cCARD]).replace(/\D/g,''):'';
       impBuf.regs.push({data:dataISO,totIn:ti,gwin:gw,bd:bd,tessera:card});
       impBuf.months.add(dataISO.slice(0,7));
@@ -1768,7 +1772,8 @@ function renderAccoglienzaPreview(){
     clientSelectorHTML()+
     `<div class="kpi-card gold"><div class="kpi-label">Registrazioni</div><div class="kpi-value">${impBuf.regs.length}</div></div>
      <div class="kpi-card blue"><div class="kpi-label">Mesi</div><div class="kpi-value">${impBuf.months.size}</div></div>
-     <div class="kpi-card purple"><div class="kpi-label">Giocato totale</div><div class="kpi-value">${impBuf.total.toLocaleString('it-CH',{maximumFractionDigits:0})}</div></div>`;
+     <div class="kpi-card purple"><div class="kpi-label">Giocato totale</div><div class="kpi-value">${impBuf.total.toLocaleString('it-CH',{maximumFractionDigits:0})}</div></div>`+
+    ((impBuf.warnings&&impBuf.warnings.length)?`<div style="grid-column:1/-1;background:rgba(255,180,0,.12);border:1px solid rgba(255,180,0,.45);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6">⚠️ <strong>${impBuf.warnings.length} valor${impBuf.warnings.length===1?'e':'i'} con formato anomalo</strong> nel file (numeri con punti multipli, es. 16.670.58). Li ho interpretati automaticamente — <strong>controlla che siano corretti</strong>:<br>${impBuf.warnings.slice(0,10).map(w=>'• '+w).join('<br>')}${impBuf.warnings.length>10?'<br>… e altri '+(impBuf.warnings.length-10):''}</div>`:'');
   document.getElementById('import-preview').style.display='';
   document.getElementById('import-log').style.display='none';
 }
