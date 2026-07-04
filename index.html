@@ -1702,7 +1702,7 @@ function cleanNumEU(v){
   const neg = s.indexOf('-')>=0;
   let t=s.replace(/[^0-9.,']/g,'').replace(/'/g,'').replace(/^\.+/,'');
   if(t.indexOf(',')>=0){ t=t.replace(/\./g,'').replace(',','.'); }
-  else if(t.indexOf('.')>=0){ const p=t.split('.'); if(p[p.length-1].length===3) t=p.join(''); }
+  else if(t.indexOf('.')>=0){ const p=t.split('.'); const last=p[p.length-1]; if(last.length===3){ t=p.join(''); } else { const dec=p.pop(); t=p.join('')+'.'+dec; } }
   let val=parseFloat(t); if(isNaN(val)) val=0;
   return neg? -Math.abs(val): val;
 }
